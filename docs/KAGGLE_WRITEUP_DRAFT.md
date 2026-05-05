@@ -1,5 +1,7 @@
 # CircuitSage: Stack Traces for Circuits
 
+![CircuitSage cover](../media/cover.png)
+
 ## Problem
 
 Software students get stack traces. Electronics students get silence. When a circuit fails, the symptom may be a flat oscilloscope trace, a saturated op-amp output, a hot part, or no signal at all. The student then has to connect theory, simulation, breadboard wiring, datasheets, and instrument readings while an instructor is helping ten other people. That moment is where many labs stop being educational and become trial-and-error.
@@ -12,6 +14,12 @@ The demo story is an inverting op-amp amplifier. The simulator expects a gain of
 
 The product has four main surfaces. Studio is the desktop workspace for artifacts, tool calls, diagnosis, and reports. Bench Mode is the phone-friendly measurement entry flow paired by QR code. Companion is a persistent screen-aware helper for tools such as LTspice, Tinkercad, MATLAB, and oscilloscope screenshots. Educator view aggregates class patterns: repeated faults, safety refusals, unresolved sessions, and stalled measurements.
 
+![Studio screenshot](../media/screenshots/02_studio.png)
+
+The Educator view shows real aggregate behavior across 476 seeded sessions: floating non-inverting input is the top fault (170 occurrences), then wrong capacitor value (55), load resistance too low (54), incorrect base bias (45), and Rg open in non-inverting mode (45).
+
+![Educator dashboard](../media/screenshots/06_educator.png)
+
 ## Tracks
 
 For Future of Education, CircuitSage teaches the debugging loop instead of giving a final answer. It asks for the next measurement, shows evidence, and generates a lab report that explains the reasoning trail.
@@ -19,6 +27,8 @@ For Future of Education, CircuitSage teaches the debugging loop instead of givin
 For Digital Equity, the design assumes intermittent internet and crowded labs. The backend has deterministic fallbacks, and the mobile path is designed for on-device Gemma inference. The demo script includes an airplane-mode scene where the phone toggles airplane mode, asks a voice question, and receives a structured local diagnosis. The iOS on-device bundle remains a USER ACTION until the Gemma file is provisioned on a physical device, but the app path and blocker reporting are already wired.
 
 For Safety & Trust, CircuitSage refuses live mains or high-voltage debugging, warns about stored charge, and keeps uncertainty visible. It has a dedicated `/uncertainty` gallery with eight cases where the correct behavior is to ask for more evidence instead of naming a component fault.
+
+![Uncertainty gallery — when CircuitSage says no](../media/screenshots/07_uncertainty.png)
 
 ## Architecture
 
@@ -69,10 +79,12 @@ The next build targets real LTspice/MATLAB importers, richer schematic recogniti
 
 ## Links
 
-Repository: `https://github.com/<org>/circuitsage`
+Repository: `https://github.com/<org>/circuitsage` (public on submission day)
 
 Demo video: `https://youtu.be/<demo-video-placeholder>`
 
-Dataset card: `https://huggingface.co/datasets/<user>/circuitsage-qa`
+Kaggle dataset (synthetic Q&A): https://www.kaggle.com/datasets/karansinghbisht/circuitsage-faults-v1
 
-Model card: `https://huggingface.co/<user>/circuitsage-gemma-lora`
+Kaggle training kernel (Unsloth LoRA on Gemma 3 1B): https://www.kaggle.com/code/karansinghbisht/circuitsage-gemma-lora
+
+Hugging Face dataset card and model card: see `train/dataset/card.md` and `train/output/MODEL_CARD.md` (uploaded to Hugging Face on submission day).

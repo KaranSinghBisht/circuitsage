@@ -1,0 +1,14 @@
+{
+  "id": "karansinghbisht/circuitsage-writeup",
+  "title": "CircuitSage Writeup",
+  "code_file": "circuitsage_writeup.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": false,
+  "enable_gpu": false,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "dataset_sources": ["karansinghbisht/circuitsage-faults-v1"],
+  "competition_sources": [],
+  "kernel_sources": []
+}

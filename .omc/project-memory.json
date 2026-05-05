@@ -145,6 +145,12 @@
   },
   "hotPaths": [
     {
+      "path": "docs/KAGGLE_WRITEUP_DRAFT.md",
+      "accessCount": 6,
+      "lastAccessed": 1778023675159,
+      "type": "file"
+    },
+    {
       "path": "backend/app/services/ollama_client.py",
       "accessCount": 5,
       "lastAccessed": 1778022031308,
@@ -220,12 +226,6 @@
       "path": "docs/ARCHITECTURE.md",
       "accessCount": 1,
       "lastAccessed": 1777982934064,
-      "type": "file"
-    },
-    {
-      "path": "docs/KAGGLE_WRITEUP_DRAFT.md",
-      "accessCount": 1,
-      "lastAccessed": 1777982934731,
       "type": "file"
     },
     {
