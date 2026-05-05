@@ -9,8 +9,7 @@ CircuitSage is a local-first Gemma lab buddy for electronics students. Turn it o
 ## Quickstart
 
 ```bash
-make install
-make demo
+make install && make demo
 ```
 
 `make demo` starts the FastAPI backend, opens `http://localhost:5173`, and runs the Vite dev server. Load the op-amp demo from the home screen or open `/companion` for the always-on screen buddy.
@@ -43,7 +42,7 @@ export OLLAMA_BASE_URL=http://localhost:11434
 bash scripts/check_ollama.sh
 ```
 
-If Ollama or the model is unavailable, the UI shows an amber Gemma status banner and the backend returns `gemma_status: deterministic_fallback`.
+If Ollama or the model is unavailable, the UI shows an amber Gemma status banner and the backend returns `gemma_status: deterministic_fallback`. Successful model runs report `ollama_gemma_agentic` or `ollama_gemma_single_shot`; malformed model output reports `ollama_partial`.
 
 ## Commands
 

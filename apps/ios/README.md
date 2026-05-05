@@ -2,7 +2,7 @@
 
 Pinned runtime:
 
-- Expo: `~55.0.20`
+- Expo: `~55.0.23`
 - React Native: `0.83.6`
 
 Verification:
