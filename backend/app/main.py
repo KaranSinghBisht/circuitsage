@@ -24,6 +24,7 @@ from .schemas import (
     MeasurementCreate,
 )
 from .services.agent_orchestrator import build_report, diagnose_session
+from .services.fault_catalog import CATALOG
 from .services.ollama_client import OllamaClient, parse_json_response
 from .tools.parse_netlist import parse_netlist_file
 from .tools.report_builder import generate_report_pdf
@@ -446,6 +447,64 @@ async def seed_op_amp_demo() -> dict:
             MeasurementCreate(label="V-", value=-12.0, unit="V", mode="DC", context="Negative supply rail"),
         ],
         question="My output is stuck near +12V. What should I check first?",
+    )
+
+
+@app.get("/api/faults")
+def list_fault_catalog() -> list[dict]:
+    rows: list[dict] = []
+    for topology, catalog in sorted(CATALOG.items()):
+        if topology == "unknown":
+            continue
+        for fault in catalog.get("faults", []):
+            rows.append(
+                {
+                    "topology": topology,
+                    "id": fault["id"],
+                    "name": fault["name"],
+                    "why": fault["why"],
+                    "requires_measurements": fault.get("requires_measurements", []),
+                    "verification_test": fault.get("verification_test", ""),
+                    "fix_recipe": fault.get("fix_recipe", ""),
+                    "thumbnail_before": "sample_data/op_amp_lab/scope_saturated_placeholder.png",
+                    "thumbnail_after": "sample_data/op_amp_lab/fixed_scope_placeholder.png",
+                }
+            )
+    return rows
+
+
+@app.post("/api/sessions/seed/fault/{topology}/{fault_id}")
+async def seed_fault_demo(topology: str, fault_id: str) -> dict:
+    catalog = CATALOG.get(topology)
+    if not catalog:
+        raise HTTPException(status_code=404, detail="Topology not found")
+    fault = next((item for item in catalog.get("faults", []) if item["id"] == fault_id), None)
+    if not fault:
+        raise HTTPException(status_code=404, detail="Fault not found")
+    sample_dir = settings.sample_data_dir.parent / topology
+    if topology == "op_amp_inverting" and not sample_dir.exists():
+        sample_dir = settings.sample_data_dir
+    samples = []
+    for filename in ("lab_manual_excerpt.md", "netlist.net", "opamp_inverting.net", "expected_waveform.csv", "observed_saturated_waveform.csv", "observed_loaded.csv", "observed_attenuated.csv", "observed_unity_gain.csv", "observed_saturated.csv", "student_question.txt"):
+        if (sample_dir / filename).exists():
+            kind = _artifact_kind(filename)
+            if filename.startswith("observed") or filename.startswith("expected"):
+                kind = "waveform_csv"
+            samples.append((kind, filename))
+    measurement_key = (fault.get("requires_measurements") or ["observed_node"])[0]
+    signature = fault.get("signature", {})
+    value = float(signature.get("value", 1.0))
+    if signature.get("operator") in {"abs_gt", "gt", "gte"}:
+        value = max(value + 0.7, 1.0)
+    measurements = [MeasurementCreate(label=measurement_key, value=value, unit="V", mode="DC", context=f"Seed evidence for {fault['name']}")]
+    return await _seed_demo(
+        topology=topology,
+        title=f"{catalog.get('label', topology)}: {fault['name']}",
+        notes=f"Seeded fault-gallery scenario for {fault_id}.",
+        sample_dir=sample_dir,
+        samples=samples[:6],
+        measurements=measurements,
+        question=f"I am trying the {fault['name']} scenario. What should I verify?",
     )
 
 

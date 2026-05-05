@@ -40,8 +40,13 @@ export function Faults() {
               <article className="fault-card" key={fault.id}>
                 <span>{fault.id}</span>
                 <h3>{fault.name}</h3>
+                <div className="fault-scope-thumb" role="img" aria-label={`${fault.name} scope before and after thumbnail`}>
+                  <svg viewBox="0 0 160 54" aria-hidden="true"><path d="M0 18 C20 4 34 4 52 18 S88 32 106 18 140 4 160 18" /><path d="M0 38 H160" /></svg>
+                </div>
                 <p>{fault.why}</p>
+                <small>Needs: {fault.requires_measurements.join(", ") || "general inspection"}</small>
                 <small>{fault.verification_test}</small>
+                <small>{fault.fix_recipe}</small>
                 <button onClick={() => tryFault(fault)}>Try this fault</button>
               </article>
             ))}
