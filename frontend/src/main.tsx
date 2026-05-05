@@ -537,6 +537,8 @@ function UploadPanel({ sessionId, onDone, compact = false }: { sessionId: string
         <option value="manual">Manual</option>
         <option value="netlist">Netlist</option>
         <option value="waveform_csv">Waveform CSV</option>
+        <option value="matlab">MATLAB Script</option>
+        <option value="tinkercad_code">Arduino Sketch</option>
         <option value="note">Note</option>
       </select>
       <label className="file-input">
