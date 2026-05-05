@@ -52,6 +52,12 @@ label span { color: var(--muted); font-size: 12px; font-weight: 800; text-transf
 .offline-badge { display: inline-flex; align-items: center; gap: 5px; color: var(--amber); border: 1px solid rgba(255,191,87,.45); padding: 3px 7px; margin-left: 8px; font-size: 11px; text-transform: uppercase; font-weight: 800; }
 .demo-tile strong, .session-tile strong { font-size: 18px; line-height: 1.25; }
 .demo-tile small, .session-tile small { color: var(--muted); line-height: 1.35; }
+.tour-layer { position: fixed; inset: 0; z-index: 40; pointer-events: none; }
+.tour-highlight { position: fixed; border: 2px solid var(--accent); box-shadow: 0 0 0 9999px rgba(4, 7, 5, .52), 0 0 28px rgba(103, 242, 169, .55); pointer-events: none; }
+.tour-popover { position: fixed; width: min(340px, calc(100vw - 36px)); border: 1px solid var(--line); background: var(--panel); padding: 14px; display: grid; gap: 12px; pointer-events: auto; }
+.tour-popover span { color: var(--accent); font-size: 12px; font-weight: 800; }
+.tour-popover p { color: var(--text); line-height: 1.45; }
+.tour-popover div { display: flex; justify-content: space-between; gap: 8px; }
 
 .studio-shell { min-height: 100vh; padding: 18px; }
 .topbar { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 18px; padding-bottom: 18px; border-bottom: 1px solid var(--line); }

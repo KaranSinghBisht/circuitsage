@@ -4,6 +4,7 @@ import { Bot, CircuitBoard, Loader2, Plus, Sparkles } from "lucide-react";
 import { api } from "../lib/api";
 import type { LabSession } from "../lib/types";
 import { LanguageSwitcher } from "../components/LanguageSwitcher";
+import { OnboardingTour } from "../components/OnboardingTour";
 import { useI18n } from "../hooks/useI18n";
 
 const DEMO_TILES = [
@@ -54,6 +55,7 @@ export function Home() {
   return (
     <main className="home-shell">
       <LanguageSwitcher />
+      <OnboardingTour />
       <section className="hero-band">
         <div>
           <div className="eyebrow"><CircuitBoard size={16} /> {t.app}</div>
@@ -61,12 +63,12 @@ export function Home() {
           <p>{t.homePitch}</p>
         </div>
         <div className="hero-actions">
-          <button onClick={() => setLocation("/companion")}><Bot size={18} /> {t.openCompanion}</button>
-          <button className="primary" onClick={() => seed("op-amp")} disabled={loading}>
+          <button data-tour="open-companion" onClick={() => setLocation("/companion")}><Bot size={18} /> {t.openCompanion}</button>
+          <button data-tour="load-demo" className="primary" onClick={() => seed("op-amp")} disabled={loading}>
             {loading ? <Loader2 className="spin" size={18} /> : <Sparkles size={18} />}
             {t.loadDemo}
           </button>
-          <div className="create-row">
+          <div className="create-row" data-tour="new-session">
             <input value={title} onChange={(event) => setTitle(event.target.value)} aria-label={t.sessionTitle} />
             <button onClick={create} disabled={loading}><Plus size={18} /> {t.newSession}</button>
           </div>
@@ -83,7 +85,7 @@ export function Home() {
         ))}
       </section>
 
-      <section className="session-grid">
+      <section className="session-grid" data-tour="recent-sessions">
         {sessions.map((session) => (
           <button className="session-tile" key={session.id} onClick={() => setLocation(`/studio/${session.id}`)}>
             <span>{session.status}</span>
