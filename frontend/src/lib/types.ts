@@ -69,3 +69,9 @@ export type CompanionAnalysis = {
   gemma_error?: string;
   raw?: string;
 };
+
+export type StreamSnapshot = {
+  session_id: string;
+  labels: Record<string, Array<{ ts: number; value: number; unit: string }>>;
+  events: Array<{ type: string; label: string; stddev: number; expected_stddev: number; message: string }>;
+};

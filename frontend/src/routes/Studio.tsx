@@ -19,6 +19,7 @@ import { SchematicPreview } from "../components/SchematicPreview";
 import { WaveformPlot } from "../components/WaveformPlot";
 import { FaultRanking } from "../components/FaultRanking";
 import { OfflineBadge } from "../components/OfflineBadge";
+import { LivePanel } from "../components/LivePanel";
 
 export function Studio({ sessionId }: { sessionId: string }) {
   const [, setLocation] = useLocation();
@@ -114,6 +115,7 @@ export function Studio({ sessionId }: { sessionId: string }) {
           <WaveformPlot artifacts={session.artifacts} />
           <MeasurementForm sessionId={sessionId} onDone={refresh} />
           <MeasurementList measurements={session.measurements} />
+          <LivePanel sessionId={sessionId} />
           <FaultRanking diagnosis={diagnosis} />
           <ToolTimeline calls={diagnosis?.tool_calls ?? []} />
         </section>

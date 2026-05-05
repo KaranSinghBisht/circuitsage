@@ -1,4 +1,4 @@
-import type { CompanionAnalysis, LabSession, Measurement, ModelHealth } from "./types";
+import type { CompanionAnalysis, LabSession, Measurement, ModelHealth, StreamSnapshot } from "./types";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
 
@@ -52,6 +52,12 @@ export const api = {
   },
   addMeasurement: (sessionId: string, payload: Omit<Measurement, "id">) =>
     request<Measurement>(`/api/sessions/${sessionId}/measurements`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  streamSnapshot: (sessionId: string) => request<StreamSnapshot>(`/api/sessions/${sessionId}/measurements/stream`),
+  streamMeasurement: (sessionId: string, payload: { label: string; value: number; unit?: string; ts?: number }) =>
+    request(`/api/sessions/${sessionId}/measurements/stream`, {
       method: "POST",
       body: JSON.stringify(payload),
     }),

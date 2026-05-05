@@ -17,6 +17,7 @@ from ..tools.safety_check import safety_check
 from ..tools.schematic_to_netlist import image_file_to_base64, recognize_schematic
 from ..tools.vision import describe_artifact
 from ..tools.waveform_analysis import analyze_waveform_csv, compare_waveform_spectra
+from .streaming import snapshot as stream_snapshot
 from .fault_catalog import build_catalog_diagnosis
 from .ollama_client import OllamaClient, parse_json_response
 from .prompt_templates import AGENTIC_SYSTEM_PROMPT, STRUCTURED_DIAGNOSIS_PROMPT
@@ -343,6 +344,28 @@ async def diagnose_session(session_id: str, user_message: str | None = None, lan
     tool_calls.append(_tool_call("compare_expected_vs_observed", started, comparison))
 
     fallback = build_catalog_diagnosis(session, netlist, waveform, comparison, evidence_measurements, safety)
+    live = stream_snapshot(session_id)
+    if live.get("events"):
+        tool_calls.append(_tool_call("streaming_drift", time.perf_counter(), live))
+        fallback["likely_faults"] = [
+            {
+                "id": "intermittent_connection",
+                "name": "Intermittent connection or loose probe",
+                "fault": "Intermittent connection or loose probe",
+                "confidence": 0.88,
+                "why": live["events"][0]["message"],
+                "category": "intermittent_connection",
+                "requires_measurements": [live["events"][0]["label"]],
+                "verification_test": "Gently wiggle the suspect lead while watching the live trace; retighten the node and repeat.",
+                "fix_recipe": "Reseat the jumper/probe and confirm the rolling trace stabilizes.",
+            },
+            *fallback.get("likely_faults", []),
+        ]
+        fallback["next_measurement"] = {
+            "label": live["events"][0]["label"],
+            "expected": "stable within the expected drift band",
+            "instruction": live["events"][0]["message"],
+        }
     vision_results: list[dict[str, Any]] = []
     vision_artifacts = [artifact for artifact in artifacts if artifact["kind"] in {"breadboard", "oscilloscope"}]
     for artifact in list(reversed(vision_artifacts))[:2]:

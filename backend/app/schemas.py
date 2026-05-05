@@ -63,6 +63,13 @@ class MeasurementCreate(BaseModel):
     source: str = "manual_entry"
 
 
+class MeasurementStreamCreate(BaseModel):
+    label: str
+    value: float
+    unit: str = "V"
+    ts: float | None = None
+
+
 class Measurement(BaseModel):
     id: str
     session_id: str

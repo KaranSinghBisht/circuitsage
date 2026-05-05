@@ -94,6 +94,12 @@ label span { color: var(--muted); font-size: 12px; font-weight: 800; text-transf
 .waveform-plot path { fill: none; stroke: var(--blue); stroke-width: 3; }
 .fault-ranking > div { display: grid; gap: 5px; }
 .fault-ranking > div > span { color: var(--text); }
+.live-panel { border: 1px solid var(--line); background: #121815; padding: 12px; display: grid; gap: 8px; margin: 12px 0; }
+.live-panel h3 { font-size: 14px; color: var(--muted); }
+.sparkline { display: grid; grid-template-columns: 72px 1fr; gap: 8px; align-items: center; }
+.sparkline span { color: var(--accent); font-size: 12px; font-weight: 800; overflow-wrap: anywhere; }
+.sparkline svg { width: 100%; height: 54px; background: #080c0a; border: 1px solid var(--line); }
+.sparkline polyline { fill: none; stroke: var(--blue); stroke-width: 2; }
 .confidence-track { height: 8px; background: #0a0f0c; border: 1px solid var(--line); overflow: hidden; }
 .confidence-track i { display: block; height: 100%; background: linear-gradient(90deg, var(--amber), var(--accent)); }
 

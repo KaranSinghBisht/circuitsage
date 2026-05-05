@@ -22,10 +22,13 @@ from .schemas import (
     LabSessionCreate,
     LabSessionUpdate,
     MeasurementCreate,
+    MeasurementStreamCreate,
 )
 from .services.agent_orchestrator import build_report, diagnose_session
 from .services.fault_catalog import CATALOG
 from .services.ollama_client import OllamaClient, parse_json_response
+from .services.streaming import add_sample as add_stream_sample
+from .services.streaming import snapshot as stream_snapshot
 from .tools.parse_netlist import parse_netlist_file
 from .tools.report_builder import generate_report_pdf
 from .tools.safety_check import safety_check
@@ -763,6 +766,18 @@ def list_measurements(session_id: str) -> list[dict]:
     with db() as conn:
         rows = conn.execute("SELECT * FROM measurements WHERE session_id = ? ORDER BY created_at", (session_id,)).fetchall()
     return rows_to_dicts(rows)
+
+
+@app.post("/api/sessions/{session_id}/measurements/stream")
+def stream_measurement(session_id: str, payload: MeasurementStreamCreate) -> dict:
+    _get_session_or_404(session_id)
+    return add_stream_sample(session_id, payload.label, payload.value, payload.unit, payload.ts)
+
+
+@app.get("/api/sessions/{session_id}/measurements/stream")
+def get_stream_measurements(session_id: str) -> dict:
+    _get_session_or_404(session_id)
+    return stream_snapshot(session_id)
 
 
 @app.post("/api/sessions/{session_id}/bench/start")
