@@ -1,0 +1,9 @@
+* BJT Common Emitter Amplifier
+VCC vcc 0 DC 12
+RC vcc collector 4.7k
+RE emitter 0 1k
+R1 vcc base 47k
+R2 base 0 10k
+Q1 collector base emitter 2N3904
+.op
+.end

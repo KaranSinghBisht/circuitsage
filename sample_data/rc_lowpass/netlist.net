@@ -1,0 +1,6 @@
+* RC Low-Pass Filter
+Vin vin 0 SIN(0 1 100)
+R1 vin vout 10k
+C1 vout 0 100n
+.tran 0 50m
+.end

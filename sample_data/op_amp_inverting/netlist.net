@@ -1,0 +1,9 @@
+* Inverting Op-Amp Amplifier Demo
+Vin vin 0 SIN(0 1 1k)
+Rin vin n_inv 10k
+Rf vout n_inv 47k
+Eop vout 0 0 n_inv 100000
+VCC vcc 0 DC 12
+VEE vee 0 DC -12
+.tran 0 5m 0 10u
+.end

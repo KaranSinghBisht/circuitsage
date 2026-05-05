@@ -1,0 +1,9 @@
+* Full Wave Bridge Rectifier
+Vin ac1 ac2 SIN(0 12 60)
+D1 ac1 vout 1N4148
+D2 ac2 vout 1N4148
+D3 0 ac1 1N4148
+D4 0 ac2 1N4148
+Rload vout 0 1k
+.tran 0 50m
+.end
