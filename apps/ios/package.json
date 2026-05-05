@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "main": "expo/AppEntry.js",
+  "circuitsage": {
+    "reactNativeVersionNote": "react-native 0.83.6 is a published version and is the Expo SDK 55-compatible pin used by expo-doctor in this workspace."
+  },
   "scripts": {
     "start": "expo start",
     "ios": "expo start --ios",
