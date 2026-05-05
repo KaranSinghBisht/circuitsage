@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import time
 import uuid
 from pathlib import Path
@@ -75,6 +76,50 @@ def _load_session_context(session_id: str) -> tuple[dict[str, Any], list[dict[st
     return session, artifacts, measurements
 
 
+def _load_recent_messages(session_id: str, limit: int = 8) -> list[dict[str, str]]:
+    with db() as conn:
+        rows = conn.execute(
+            """
+            SELECT role, content FROM messages
+            WHERE session_id = ? AND role IN ('user', 'assistant')
+            ORDER BY created_at DESC
+            LIMIT ?
+            """,
+            (session_id, limit),
+        ).fetchall()
+    return [{"role": row["role"], "content": row["content"]} for row in reversed(rows)]
+
+
+def _measurements_from_messages(messages: list[dict[str, str]]) -> list[dict[str, Any]]:
+    extracted: list[dict[str, Any]] = []
+    patterns = [
+        (r"\b(V[_\s-]?noninv|non[-\s]?inverting(?: input)?|pin 3)\b[^0-9+-]*([+-]?\d+(?:\.\d+)?)\s*(V|volts?)?", "V_noninv"),
+        (r"\b(collector|vc)\b[^0-9+-]*([+-]?\d+(?:\.\d+)?)\s*(V|volts?)?", "collector_voltage"),
+        (r"\b(loaded[_\s-]?vout|output|vout)\b[^0-9+-]*([+-]?\d+(?:\.\d+)?)\s*(V|volts?)?", "loaded_vout"),
+        (r"\b(gain|vout/vin)\b[^0-9+-]*([+-]?\d+(?:\.\d+)?)", "closed_loop_gain"),
+    ]
+    for message in messages:
+        if message["role"] != "user":
+            continue
+        content = message["content"]
+        for pattern, label in patterns:
+            match = re.search(pattern, content, flags=re.IGNORECASE)
+            if match:
+                unit = "ratio" if "gain" in label else "V"
+                extracted.append(
+                    {
+                        "id": f"memory_{len(extracted)}",
+                        "label": label,
+                        "value": float(match.group(2)),
+                        "unit": unit,
+                        "mode": "chat_memory",
+                        "context": "extracted from recent chat",
+                        "source": "chat_memory",
+                    }
+                )
+    return extracted
+
+
 def _tool_call(name: str, started: float, output: dict[str, Any], status: str = "ok") -> dict[str, Any]:
     return {
         "tool_name": name,
@@ -133,6 +178,9 @@ def _record_model_tool_calls(raw_tool_calls: list[dict[str, Any]], fallback: dic
 async def diagnose_session(session_id: str, user_message: str | None = None) -> dict[str, Any]:
     settings = get_settings()
     session, artifacts, measurements = _load_session_context(session_id)
+    recent_messages = _load_recent_messages(session_id)
+    memory_measurements = _measurements_from_messages(recent_messages)
+    evidence_measurements = [*measurements, *memory_measurements]
     user_message = user_message or ""
     combined_text = " ".join([user_message, session.get("summary", ""), *[a.get("text_excerpt", "") for a in artifacts]])
 
@@ -179,10 +227,10 @@ async def diagnose_session(session_id: str, user_message: str | None = None) -> 
         tool_calls.append(_tool_call("retrieve_lab_manual", started, manual))
 
     started = time.perf_counter()
-    comparison = compare_expected_vs_observed(netlist.get("computed", {}).get("gain"), waveform, measurements)
+    comparison = compare_expected_vs_observed(netlist.get("computed", {}).get("gain"), waveform, evidence_measurements)
     tool_calls.append(_tool_call("compare_expected_vs_observed", started, comparison))
 
-    fallback = build_catalog_diagnosis(session, netlist, waveform, comparison, measurements, safety)
+    fallback = build_catalog_diagnosis(session, netlist, waveform, comparison, evidence_measurements, safety)
     started = time.perf_counter()
     tool_calls.append(
         _tool_call(
@@ -194,7 +242,8 @@ async def diagnose_session(session_id: str, user_message: str | None = None) -> 
     )
     context = {
         "session": session,
-        "measurements": measurements,
+        "measurements": evidence_measurements,
+        "recent_messages": recent_messages,
         "netlist": netlist,
         "waveform": waveform,
         "manual": manual,
@@ -215,6 +264,7 @@ async def diagnose_session(session_id: str, user_message: str | None = None) -> 
         chat_result = await client.chat(
             [
                 {"role": "system", "content": agentic_prompt},
+                *recent_messages,
                 {"role": "user", "content": STRUCTURED_DIAGNOSIS_PROMPT.format(context=json.dumps(context, indent=2))},
             ],
             format_json=True,

@@ -126,6 +126,14 @@ def score(topology: str, comparison: dict[str, Any], measurements: list[dict[str
                 confidence = min(confidence, 0.15)
 
         confidence = round(min(confidence, 0.92), 2)
+        next_measurement = _next_for_fault(fault)
+        if signature_result is True:
+            next_measurement = {
+                "label": "Retest after fix",
+                "expected": "corrected behavior for the detected topology",
+                "instruction": fault.get("fix_recipe", fault.get("verification_test", "")),
+            }
+
         scored.append(
             {
                 "id": fault["id"],
@@ -138,7 +146,7 @@ def score(topology: str, comparison: dict[str, Any], measurements: list[dict[str
                 "verification_test": fault.get("verification_test", ""),
                 "fix_recipe": fault.get("fix_recipe", ""),
                 "signature_matched": signature_result,
-                "next_measurement": _next_for_fault(fault),
+                "next_measurement": next_measurement,
             }
         )
     return sorted(scored, key=lambda item: item["confidence"], reverse=True)

@@ -637,9 +637,20 @@ async def chat(session_id: str, payload: ChatRequest) -> dict:
         f"Safety: {' '.join(diagnosis.get('safety', {}).get('warnings', []))}"
     )
     with db() as conn:
+        trace_tool_calls = [
+            {"tool_name": call.get("tool_name"), "status": call.get("status"), "output": call.get("output")}
+            for call in result["tool_calls"]
+        ]
         conn.execute(
             "INSERT INTO messages (id, session_id, role, content, metadata_json, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-            (str(uuid.uuid4()), session_id, "assistant", reply, json.dumps({"diagnosis_id": result["id"]}), utc_now()),
+            (
+                str(uuid.uuid4()),
+                session_id,
+                "assistant",
+                reply,
+                json.dumps({"diagnosis_id": result["id"], "tool_calls": trace_tool_calls}),
+                utc_now(),
+            ),
         )
     return {
         "reply": reply,
