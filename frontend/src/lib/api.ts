@@ -92,6 +92,7 @@ export const api = {
     common_faults: Array<{ topology: string; fault: string; count: number }>;
     stalled_measurements: Array<{ label: string; count: number }>;
   }>("/api/educator/overview"),
+  datasheetUrl: (part: string) => `${API_BASE}/api/datasheets/${encodeURIComponent(part)}`,
   companionAnalyze: (payload: {
     question: string;
     image_data_url?: string;

@@ -68,6 +68,14 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
     {
         "type": "function",
         "function": {
+            "name": "lookup_datasheet",
+            "description": "Look up pin map, absolute maximums, typical use, and common faults for a component part number.",
+            "parameters": {"type": "object", "properties": {"part_number": {"type": "string"}}, "required": ["part_number"]},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "final_answer",
             "description": "Return the final structured diagnosis JSON and end the agent loop.",
             "parameters": {

@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from ..tools.rag import retrieve
+from ..tools.datasheet import lookup_datasheet
 from .fault_catalog import _expected_behavior
 
 
@@ -62,5 +63,8 @@ async def run_tool(name: str, arguments: dict, *, context: AgentContext) -> dict
             "verification_test": top_fault.get("verification_test") or context.fallback.get("next_measurement", {}).get("instruction"),
             "simulation_suggestion": "Change only the suspected fault condition in simulation and compare the expected node against the bench measurement.",
         }
+
+    if name == "lookup_datasheet":
+        return lookup_datasheet(str(arguments.get("part_number", "")))
 
     return {"error": "unknown_tool", "tool": name}

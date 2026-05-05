@@ -31,6 +31,7 @@ from .services.streaming import add_sample as add_stream_sample
 from .services.streaming import snapshot as stream_snapshot
 from .tools.parse_netlist import parse_netlist_file
 from .tools.report_builder import generate_report_pdf
+from .tools.datasheet import lookup_datasheet
 from .tools.safety_check import safety_check
 from .tools.schematic_to_netlist import image_file_to_base64, recognize_schematic
 
@@ -474,6 +475,11 @@ def list_fault_catalog() -> list[dict]:
                 }
             )
     return rows
+
+
+@app.get("/api/datasheets/{partnumber}")
+def get_datasheet(partnumber: str) -> dict:
+    return lookup_datasheet(partnumber)
 
 
 @app.post("/api/sessions/seed/fault/{topology}/{fault_id}")
