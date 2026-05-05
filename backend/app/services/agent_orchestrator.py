@@ -63,6 +63,36 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
             "parameters": {"type": "object", "properties": {"check": {"type": "string"}}, "required": ["check"]},
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "final_answer",
+            "description": "Return the final structured diagnosis JSON and end the agent loop.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "experiment_type": {"type": "string"},
+                    "expected_behavior": {"type": "object"},
+                    "observed_behavior": {"type": "object"},
+                    "likely_faults": {"type": "array", "items": {"type": "object"}},
+                    "next_measurement": {"type": "object"},
+                    "safety": {"type": "object"},
+                    "student_explanation": {"type": "string"},
+                    "confidence": {"type": "string"},
+                },
+                "required": [
+                    "experiment_type",
+                    "expected_behavior",
+                    "observed_behavior",
+                    "likely_faults",
+                    "next_measurement",
+                    "safety",
+                    "student_explanation",
+                    "confidence",
+                ],
+            },
+        },
+    },
 ]
 
 
@@ -184,10 +214,14 @@ async def _agentic_loop(
     tool_schemas: list[dict[str, Any]],
     context: AgentContext,
     max_iterations: int = 4,
+    wall_clock_budget_s: float = 30.0,
 ) -> dict[str, Any]:
     transcript: list[dict[str, Any]] = [{"role": "system", "content": system_prompt}, *history, {"role": "user", "content": user_prompt}]
     recorded_calls: list[dict[str, Any]] = []
+    loop_started = time.monotonic()
     for index in range(max_iterations):
+        if time.monotonic() - loop_started > wall_clock_budget_s:
+            break
         chat = await client.chat(transcript, tools=tool_schemas, format_json=False)
         raw_tool_calls = chat.get("tool_calls", [])
         if not raw_tool_calls:
@@ -195,10 +229,35 @@ async def _agentic_loop(
         transcript.append({"role": "assistant", "content": chat.get("content", ""), "tool_calls": raw_tool_calls})
         for raw in raw_tool_calls[:3]:
             name, arguments = _tool_name_and_args(raw)
-            output = await run_tool(name, arguments, context=context)
+            started = time.perf_counter()
+            if name == "final_answer":
+                recorded_calls.append(
+                    {
+                        "tool_name": name,
+                        "input": arguments,
+                        "output": {"accepted": True},
+                        "status": "ok",
+                        "duration_ms": round((time.perf_counter() - started) * 1000),
+                    }
+                )
+                return {"content": json.dumps(arguments), "tool_calls": recorded_calls, "iterations": index + 1}
+            try:
+                output = await run_tool(name, arguments, context=context)
+                status = "ok"
+            except Exception as exc:  # noqa: BLE001 - the model should see recoverable tool errors.
+                output = {"error": str(exc), "tool": name}
+                status = "error"
             transcript.append({"role": "tool", "name": name, "content": json.dumps(output)})
-            recorded_calls.append({"tool_name": name, "input": arguments, "output": output, "status": "ok", "duration_ms": 0})
-    transcript.append({"role": "user", "content": "Return only the structured diagnosis JSON now."})
+            recorded_calls.append(
+                {
+                    "tool_name": name,
+                    "input": arguments,
+                    "output": output,
+                    "status": status,
+                    "duration_ms": round((time.perf_counter() - started) * 1000),
+                }
+            )
+    transcript.append({"role": "user", "content": "Call final_answer now with the structured diagnosis JSON."})
     final = await client.chat(transcript, format_json=True)
     return {"content": final["content"], "tool_calls": recorded_calls, "iterations": max_iterations}
 

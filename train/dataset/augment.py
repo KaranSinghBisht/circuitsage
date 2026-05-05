@@ -18,7 +18,7 @@ def _ollama_paraphrases(prompt: str, n: int) -> list[str]:
     if _OLLAMA_DISABLED:
         raise RuntimeError("ollama disabled after earlier failure")
     base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
-    model = os.getenv("OLLAMA_MODEL", "gemma3:4b")
+    model = os.getenv("OLLAMA_MODEL", "gemma4:e4b")
     body = json.dumps(
         {
             "model": model,

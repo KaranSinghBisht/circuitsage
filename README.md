@@ -36,8 +36,8 @@ The seed demo is an inverting op-amp amplifier:
 
 ```bash
 ollama serve
-ollama pull gemma3:4b
-export OLLAMA_MODEL=gemma3:4b
+ollama pull gemma4:e4b
+export OLLAMA_MODEL=gemma4:e4b
 export OLLAMA_BASE_URL=http://localhost:11434
 bash scripts/check_ollama.sh
 ```

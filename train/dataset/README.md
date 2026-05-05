@@ -18,4 +18,4 @@ Local augmentation hook:
 python3 train/dataset/augment.py --in seeds.jsonl --out augmented.jsonl --variants 5
 ```
 
-If the validator reports mostly `rule` paraphrases, re-run with Ollama and `gemma3:4b` loaded before final training. Rule-based examples are acceptable for CI but should be filtered or regenerated for the highest-quality LoRA run.
+If the validator reports mostly `rule` paraphrases, re-run with Ollama and `gemma4:e4b` loaded before final training. Rule-based examples are acceptable for CI but should be filtered or regenerated for the highest-quality LoRA run.

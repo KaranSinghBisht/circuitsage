@@ -70,6 +70,8 @@ def _artifact_kind(filename: str, provided: str | None = None) -> str:
         if "scope" in lowered or "oscilloscope" in lowered:
             return "oscilloscope"
         return "image"
+    if suffix in {".wav", ".caf", ".m4a", ".mp3", ".aac"}:
+        return "audio"
     if suffix == ".m":
         return "matlab"
     if suffix == ".ino":

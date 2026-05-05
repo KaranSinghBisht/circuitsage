@@ -28,6 +28,9 @@ async def run_tool(name: str, arguments: dict, *, context: AgentContext) -> dict
     topology = _topology(context)
     top_fault = (context.fallback.get("likely_faults") or [{}])[0]
 
+    if name == "final_answer":
+        return arguments
+
     if name == "compute_expected_value":
         return {
             "quantity": arguments.get("quantity"),

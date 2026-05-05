@@ -27,23 +27,28 @@ def test_agent_loop_executes_tool_and_sets_agentic_status(monkeypatch: pytest.Mo
                 ],
             }
         return {
-            "content": json.dumps(
+            "content": "",
+            "tool_calls": [
                 {
-                    "experiment_type": "unknown",
-                    "expected_behavior": {},
-                    "observed_behavior": {"summary": "Needs evidence", "evidence": []},
-                    "likely_faults": [],
-                    "next_measurement": {
-                        "label": "V_noninv",
-                        "expected": "topology-dependent",
-                        "instruction": "Measure V_noninv.",
-                    },
-                    "safety": {"risk_level": "low_voltage_lab", "warnings": []},
-                    "student_explanation": "Measure V_noninv next.",
-                    "confidence": "low",
+                    "function": {
+                        "name": "final_answer",
+                        "arguments": {
+                            "experiment_type": "unknown",
+                            "expected_behavior": {},
+                            "observed_behavior": {"summary": "Needs evidence", "evidence": []},
+                            "likely_faults": [],
+                            "next_measurement": {
+                                "label": "V_noninv",
+                                "expected": "topology-dependent",
+                                "instruction": "Measure V_noninv.",
+                            },
+                            "safety": {"risk_level": "low_voltage_lab", "warnings": []},
+                            "student_explanation": "Measure V_noninv next.",
+                            "confidence": "low",
+                        },
+                    }
                 }
-            ),
-            "tool_calls": [],
+            ],
         }
 
     monkeypatch.setattr("app.services.agent_orchestrator.OllamaClient.chat", fake_chat)
@@ -55,7 +60,9 @@ def test_agent_loop_executes_tool_and_sets_agentic_status(monkeypatch: pytest.Mo
     assert response.status_code == 200
     diagnosis = response.json()["diagnosis"]
     executed = [call for call in diagnosis["tool_calls"] if call["tool_name"] == "request_measurement" and call["status"] == "ok"]
+    final = [call for call in diagnosis["tool_calls"] if call["tool_name"] == "final_answer" and call["status"] == "ok"]
     assert diagnosis["gemma_status"] == "ollama_gemma_agentic"
     assert diagnosis["agent_iterations"] == 2
     assert executed
+    assert final
     assert executed[-1]["output"] == {"requested": "V_noninv", "already_taken": False}

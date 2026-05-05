@@ -29,7 +29,7 @@ def _default_ollama_model() -> str:
     base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
     if _ollama_has_model(base_url, "circuitsage:latest"):
         return "circuitsage:latest"
-    return "gemma3:4b"
+    return "gemma4:e4b"
 
 
 class Settings:
@@ -39,7 +39,7 @@ class Settings:
     sample_data_dir: Path = PROJECT_ROOT / "sample_data" / "op_amp_lab"
     ollama_base_url: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
     ollama_model: str = _default_ollama_model()
-    ollama_vision_model: str = os.getenv("OLLAMA_VISION_MODEL", "gemma3:4b")
+    ollama_vision_model: str = os.getenv("OLLAMA_VISION_MODEL", "gemma4:e4b")
     ollama_embed_model: str = os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text")
     dev_mode: bool = os.getenv("CIRCUITSAGE_DEV", "1") == "1"
     frontend_origin: str = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173")

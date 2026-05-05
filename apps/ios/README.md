@@ -6,6 +6,8 @@ Pinned runtime:
 - React Native: `0.83.6`
 - Cactus bridge: `cactus-react-native@1.13.1`
 - MediaPipe bridge fallback: `expo-llm-mediapipe@0.6.0`
+- Voice input: `expo-speech-recognition@3.1.3`
+- Voice output: `expo-speech@55.0.13`
 
 Verification:
 
@@ -30,3 +32,9 @@ Physical demo steps:
 4. Enable `Local model (offline)`, switch the iPhone to airplane mode, ask: `My inverting op-amp is stuck near +12 V. What should I check?`
 
 If the model is missing, the app reports that local inference is not ready instead of using the server path silently.
+
+## Voice
+
+Hold the mic button to dictate a question. The app uses system speech recognition first and saves the persisted recording as an `audio` artifact when a LAN session id is selected. Answers are spoken back with Expo Speech. Long-press the mic or tap `Narrate` to read the latest diagnosis aloud.
+
+Physical validation is required on an iPhone development client because Expo Go cannot load every native bridge used here.

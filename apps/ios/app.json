@@ -13,13 +13,14 @@
       "infoPlist": {
         "NSCameraUsageDescription": "CircuitSage uses the camera to capture oscilloscope, multimeter, breadboard, and lab-bench evidence.",
         "NSPhotoLibraryUsageDescription": "CircuitSage lets you attach existing lab screenshots or bench photos for analysis.",
+        "NSMicrophoneUsageDescription": "CircuitSage uses the microphone for hold-to-talk lab questions.",
+        "NSSpeechRecognitionUsageDescription": "CircuitSage uses speech recognition to turn spoken lab questions into text.",
         "NSLocalNetworkUsageDescription": "CircuitSage connects to your laptop backend on the local network during lab sessions."
       }
     },
-    "plugins": ["expo-image-picker"],
+    "plugins": ["expo-image-picker", "expo-speech-recognition"],
     "extra": {
       "defaultApiUrl": "http://127.0.0.1:8000"
     }
   }
 }
-

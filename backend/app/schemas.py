@@ -11,6 +11,7 @@ ArtifactKind = Literal[
     "image",
     "breadboard",
     "oscilloscope",
+    "audio",
     "matlab",
     "tinkercad_code",
     "note",

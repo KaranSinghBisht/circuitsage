@@ -14,13 +14,13 @@ Expected behavior:
 Top deterministic fault candidates:
 {fault_candidates}
 
-Use tool calls only for the next useful lab action. Prefer asking for one measurement over broad speculation.
-After tool results are returned, produce the final structured diagnosis JSON."""
+Use native tool calls for the next useful lab action. Prefer asking for one measurement over broad speculation.
+When you have enough evidence or hit the iteration limit, call the final_answer tool with the complete structured diagnosis."""
 
 
 STRUCTURED_DIAGNOSIS_PROMPT = """Given the following lab context, produce a structured diagnosis.
 
-Return valid JSON matching this schema:
+Use the final_answer tool with arguments matching this schema:
 {{
   "experiment_type": string,
   "expected_behavior": object,

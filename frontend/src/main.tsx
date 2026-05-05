@@ -147,7 +147,7 @@ function Studio({ sessionId, go }: { sessionId: string; go: (path: string) => vo
 
   useEffect(() => {
     const refreshModel = () => api.modelHealth().then(setModelHealth).catch(() => {
-      setModelHealth({ available: false, model: "gemma3:4b", loaded: false, models: [], hint: "Run: ollama pull gemma3:4b" });
+      setModelHealth({ available: false, model: "gemma4:e4b", loaded: false, models: [], hint: "Run: ollama pull gemma4:e4b" });
     });
     refreshModel();
     const interval = window.setInterval(refreshModel, 10000);
@@ -243,7 +243,7 @@ function GemmaStatusBanner({ health }: { health: ModelHealth | null }) {
   return (
     <div className="gemma-banner">
       <AlertTriangle size={17} />
-      <span>Gemma not loaded &mdash; running in deterministic mode. Run: ollama pull {health.model || "gemma3:4b"}</span>
+      <span>Gemma not loaded &mdash; running in deterministic mode. Run: ollama pull {health.model || "gemma4:e4b"}</span>
     </div>
   );
 }

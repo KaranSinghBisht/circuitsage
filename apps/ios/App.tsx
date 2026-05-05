@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { StatusBar } from "expo-status-bar";
+import { useSpeechRecognitionEvent } from "expo-speech-recognition";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -19,6 +20,8 @@ import {
 import type { CompanionAnalysis } from "./src/types";
 import { createOnDeviceEngine } from "./src/onDevice/Engine";
 import type { StructuredDiagnosis } from "./src/onDevice/types";
+import { abortSpeechRecognition, startSpeechRecognition, stopSpeechRecognition } from "./src/voice/Recorder";
+import { speakAnalysis, stopSpeaking } from "./src/voice/Player";
 
 const DEFAULT_API_URL = "http://127.0.0.1:8000";
 
@@ -69,6 +72,22 @@ function structuredToCompanion(diagnosis: StructuredDiagnosis): CompanionAnalysi
   };
 }
 
+async function uploadVoiceArtifact(apiUrl: string, sessionId: string, uri: string) {
+  if (!sessionId || !uri) return;
+  const body = new FormData();
+  body.append("kind", "audio");
+  body.append("file", {
+    uri,
+    name: `voice-${Date.now()}.caf`,
+    type: "audio/x-caf",
+  } as unknown as Blob);
+  const response = await fetch(`${apiUrl.replace(/\/$/, "")}/api/sessions/${sessionId}/artifacts`, {
+    method: "POST",
+    body,
+  });
+  if (!response.ok) throw new Error(await response.text());
+}
+
 export default function App() {
   const localEngine = useMemo(() => createOnDeviceEngine("cactus"), []);
   const [apiUrl, setApiUrl] = useState(DEFAULT_API_URL);
@@ -83,6 +102,8 @@ export default function App() {
   const [imageUri, setImageUri] = useState<string>("");
   const [analysis, setAnalysis] = useState<CompanionAnalysis | null>(null);
   const [busy, setBusy] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [voiceUri, setVoiceUri] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -108,6 +129,31 @@ export default function App() {
       cancelled = true;
     };
   }, [localEngine, localMode]);
+
+  useSpeechRecognitionEvent("audiostart", (event) => {
+    if (event.uri) setVoiceUri(event.uri);
+  });
+
+  useSpeechRecognitionEvent("audioend", (event) => {
+    setRecording(false);
+    const uri = event.uri ?? voiceUri;
+    if (uri && sessionId && !localMode) {
+      uploadVoiceArtifact(apiUrl, sessionId, uri).catch((exc) => {
+        setError(exc instanceof Error ? exc.message : "Voice artifact upload failed.");
+      });
+    }
+  });
+
+  useSpeechRecognitionEvent("result", (event) => {
+    const transcript = event.results[0]?.transcript?.trim();
+    if (transcript) setQuestion(transcript);
+    if (event.isFinal) setRecording(false);
+  });
+
+  useSpeechRecognitionEvent("error", (event) => {
+    setRecording(false);
+    setError(`${event.error}: ${event.message}`);
+  });
 
   async function pickImage(source: "camera" | "library") {
     setError("");
@@ -148,10 +194,30 @@ export default function App() {
           saveSnapshot,
         });
       setAnalysis(result);
+      speakAnalysis(result);
     } catch (exc) {
       setError(exc instanceof Error ? exc.message : "Analysis failed.");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function startVoice() {
+    setError("");
+    setRecording(true);
+    try {
+      await startSpeechRecognition({ offline: localMode });
+    } catch (exc) {
+      setRecording(false);
+      setError(exc instanceof Error ? exc.message : "Voice recording failed.");
+    }
+  }
+
+  function stopVoice() {
+    try {
+      stopSpeechRecognition();
+    } finally {
+      setRecording(false);
     }
   }
 
@@ -209,6 +275,24 @@ export default function App() {
               <Text style={styles.muted}>Save snapshot to session</Text>
               <Switch value={saveSnapshot} onValueChange={setSaveSnapshot} trackColor={{ true: "#67f2a9" }} />
             </View>
+            <View style={styles.row}>
+              <Pressable
+                style={[styles.button, recording && styles.recording]}
+                onPressIn={startVoice}
+                onPressOut={stopVoice}
+                onLongPress={() => speakAnalysis(analysis)}
+              >
+                <Ionicons name={recording ? "mic" : "mic-outline"} size={18} color="#edf7ee" />
+                <Text style={styles.buttonText}>{recording ? "Listening" : "Hold to Ask"}</Text>
+              </Pressable>
+              <Pressable style={styles.button} onPress={() => speakAnalysis(analysis)}>
+                <Ionicons name="volume-high" size={18} color="#edf7ee" />
+                <Text style={styles.buttonText}>Narrate</Text>
+              </Pressable>
+              <Pressable style={styles.buttonIcon} onPress={() => { abortSpeechRecognition(); stopSpeaking(); setRecording(false); }}>
+                <Ionicons name="stop" size={18} color="#edf7ee" />
+              </Pressable>
+            </View>
             <Pressable style={[styles.primary, busy && styles.disabled]} onPress={analyze} disabled={busy}>
               {busy ? <ActivityIndicator color="#07110b" /> : <Ionicons name="sparkles" size={18} color="#07110b" />}
               <Text style={styles.primaryText}>{localMode ? "Ask Local Gemma" : "Analyze Bench Evidence"}</Text>
@@ -254,6 +338,8 @@ const styles = StyleSheet.create({
   muted: { color: "#98aa9e", lineHeight: 20 },
   row: { flexDirection: "row", gap: 8 },
   button: { flex: 1, minHeight: 44, borderWidth: 1, borderColor: "#344238", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
+  buttonIcon: { width: 48, minHeight: 44, borderWidth: 1, borderColor: "#344238", alignItems: "center", justifyContent: "center" },
+  recording: { borderColor: "#ff5f56", backgroundColor: "#3a1f1d" },
   buttonText: { color: "#edf7ee", fontWeight: "800" },
   primary: { minHeight: 48, backgroundColor: "#67f2a9", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
   primaryText: { color: "#07110b", fontWeight: "900" },
