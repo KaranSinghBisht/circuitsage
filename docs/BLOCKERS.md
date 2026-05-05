@@ -33,3 +33,7 @@
 ## Phase 3.5 follow-up pre-flight
 
 - Pre-flight for `docs/PHASE_3_5_FOLLOWUP_AND_HARDENING.md` stopped on 2026-05-06 because `git status` was not clean before Group A. Dirty entries at the gate were `.omc/project-memory.json`, `.omc/state/agent-replay-d79f5ca6-fc55-4d26-867c-7d5bc110f091.jsonl`, `.omc/state/idle-notif-cooldown.json`, `.omc/state/last-tool-error.json`, `.omc/state/mission-state.json`, `.omc/state/subagent-tracking.json`, and untracked `docs/PHASE_3_5_FOLLOWUP_AND_HARDENING.md`. Per Section 0, Group A must not start until the worktree is clean or the user explicitly chooses how to handle these pre-existing files.
+
+## A3 CI validation
+
+- `.github/workflows/ci.yml` was created on 2026-05-06 and parsed locally as YAML with backend, frontend, and dataset jobs. GitHub Actions cannot be run from this local workspace, and `actionlint` is not installed (`command -v actionlint` returned no path), so final CI-green validation remains pending until a branch is pushed.
