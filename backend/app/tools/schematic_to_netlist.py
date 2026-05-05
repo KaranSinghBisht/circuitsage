@@ -42,22 +42,3 @@ async def recognize_schematic(image_b64: str, *, hint: str = "") -> dict[str, An
         result["mode"] = "vision_unavailable"
         result["error"] = f"{exc.__class__.__name__}: {exc}"
         return result
-
-
-def recognize_schematic_sync_fallback(text_hint: str = "") -> dict[str, Any]:
-    if "opamp" in text_hint.lower() or "op amp" in text_hint.lower():
-        netlist = "\n".join([
-            "Vin vin 0 SIN(0 1 1k)",
-            "Rin vin n_inv 10k",
-            "Rf vout n_inv 47k",
-            "Vcc vcc 0 DC 12",
-            "Vee vee 0 DC -12",
-            "E1 vout 0 n_noninv n_inv 100000",
-            "Rbias n_noninv 0 1meg",
-        ])
-        result = validate_netlist_text(netlist, confidence=0.62)
-        result["mode"] = "hint_fallback"
-        return result
-    result = validate_netlist_text("", confidence=0.0, missing=["schematic photo"])
-    result["mode"] = "hint_fallback_low"
-    return result

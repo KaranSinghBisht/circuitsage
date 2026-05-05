@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import asyncio
+
+from app.services.demo_seeds import _demo_seed_op_amp_netlist
 from app.services.netlist_validator import validate_netlist_text
-from app.tools.schematic_to_netlist import recognize_schematic_sync_fallback
+from app.tools.schematic_to_netlist import recognize_schematic
 
 
 def test_validate_recognized_op_amp_netlist() -> None:
@@ -20,8 +23,21 @@ Rbias n_noninv 0 1meg
     assert result["parsed"]["computed"]["gain"] == -4.7
 
 
-def test_ambiguous_schematic_fallback_stays_low_confidence() -> None:
-    result = recognize_schematic_sync_fallback("blurred unknown circuit")
+def test_demo_seed_op_amp_netlist_parses_to_gain() -> None:
+    result = _demo_seed_op_amp_netlist()
+    assert result["mode"] == "demo_seed"
+    assert result["detected_topology"] == "op_amp_inverting"
+    assert result["parsed"]["computed"]["gain"] == -4.7
+
+
+def test_vision_unavailable_does_not_fabricate_hint_netlist(monkeypatch) -> None:
+    async def fail_chat(self, messages, format_json=False, tools=None):
+        raise RuntimeError("vision down")
+
+    monkeypatch.setattr("app.tools.schematic_to_netlist.OllamaClient.chat", fail_chat)
+    result = asyncio.run(recognize_schematic("ZmFrZQ==", hint="opamp inverting amplifier"))
     assert result["detected_topology"] == "unknown"
     assert result["confidence"] == 0.0
+    assert result["mode"] == "vision_unavailable"
+    assert result["netlist"] == ""
     assert result["missing"]
