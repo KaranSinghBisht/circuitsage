@@ -448,16 +448,16 @@ Option B, more polished:
 
 ### Local model
 
-Use Gemma 4 through Ollama for the demo.
+Use Gemma through Ollama for the demo.
 
 Environment variable:
 
 ```bash
 OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_MODEL=gemma4:latest
+OLLAMA_MODEL=gemma3:4b
 ```
 
-Because exact local model tags may vary, code should let the user configure `OLLAMA_MODEL`. Do not hardcode a single tag.
+Because exact local model tags may vary, code should let the user configure `OLLAMA_MODEL`. The current default is `gemma3:4b`.
 
 ---
 
@@ -1285,8 +1285,8 @@ npm run dev
 
 ```bash
 ollama serve
-ollama pull <gemma-4-model-tag>
-export OLLAMA_MODEL=<gemma-4-model-tag>
+ollama pull gemma3:4b
+export OLLAMA_MODEL=gemma3:4b
 ```
 
 8. Demo flow:
@@ -1724,4 +1724,3 @@ Gemma Agent:
 ```
 
 The MVP is the op-amp lab. The story is global practical engineering education. The demo is simulation -> silent hardware failure -> CircuitSage next measurement -> diagnosis -> fix -> reflection.
-

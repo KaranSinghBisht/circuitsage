@@ -267,7 +267,7 @@ Rules:
         return {**fallback, "saved_artifact": saved_artifact}
 
     try:
-        result = await OllamaClient(settings.ollama_base_url, settings.ollama_model).chat(
+        chat_result = await OllamaClient(settings.ollama_base_url, settings.ollama_vision_model).chat(
             [
                 {
                     "role": "user",
@@ -277,6 +277,7 @@ Rules:
             ],
             format_json=True,
         )
+        result = chat_result["content"]
         parsed = parse_json_response(result)
         if not parsed:
             return {**fallback, "mode": "gemma_text_unparsed", "raw": result[:1200], "saved_artifact": saved_artifact}

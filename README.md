@@ -69,12 +69,13 @@ Open `http://localhost:5173`.
 
 ```bash
 ollama serve
-ollama pull <gemma-4-model-tag>
-export OLLAMA_MODEL=<gemma-4-model-tag>
+ollama pull gemma3:4b
+export OLLAMA_MODEL=gemma3:4b
 export OLLAMA_BASE_URL=http://localhost:11434
+bash scripts/check_ollama.sh
 ```
 
-The model tag is configurable because local Gemma tags vary by environment.
+The model tag is configurable via `OLLAMA_MODEL`, but the default is `gemma3:4b` until a newer published Ollama tag is verified.
 
 ## Demo Flow
 

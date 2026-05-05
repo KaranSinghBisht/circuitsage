@@ -201,13 +201,14 @@ async def diagnose_session(session_id: str, user_message: str | None = None) -> 
     diagnosis = fallback
     try:
         client = OllamaClient(settings.ollama_base_url, settings.ollama_model)
-        content = await client.chat(
+        chat_result = await client.chat(
             [
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": STRUCTURED_DIAGNOSIS_PROMPT.format(context=json.dumps(context, indent=2))},
             ],
             format_json=True,
         )
+        content = chat_result["content"]
         parsed = parse_json_response(content)
         if parsed:
             diagnosis = {**fallback, **parsed}
@@ -254,4 +255,3 @@ def build_report(session_id: str) -> str:
             (session_id, markdown, utc_now()),
         )
     return markdown
-
