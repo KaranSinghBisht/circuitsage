@@ -1,0 +1,16 @@
+.git
+.pytest_cache
+.omc
+backend/.venv
+backend/app/data/*.db
+backend/app/uploads
+frontend/node_modules
+frontend/dist
+frontend/tsconfig.tsbuildinfo
+node_modules
+apps/desktop/node_modules
+apps/desktop/dist
+apps/desktop/out
+apps/ios/node_modules
+apps/ios/.expo
+train/output

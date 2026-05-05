@@ -24,3 +24,8 @@
 ## K1
 
 - Schematic-to-netlist is wired through the Gemma vision endpoint and validates generated SPICE before use. The live acceptance with a hand-drawn schematic photo requires Ollama running with the configured vision model and a real photo; when vision is unavailable, the endpoint returns low confidence with missing evidence instead of fabricating components.
+
+## K10
+
+- Hosted packaging is present (`Dockerfile`, `fly.toml`, `docs/DEPLOYMENT.md`, `scripts/hosted_start.sh`) and hosted-mode guard tests pass locally. Actual Fly deployment is a USER ACTION requiring a Fly account, deploy credentials, and volume creation.
+- A local Docker image build was attempted on 2026-05-05, but Docker Desktop/daemon was not running (`Cannot connect to the Docker daemon at unix:///Users/kryptos/.docker/run/docker.sock`). Re-run `docker build -t circuitsage-hosted:local .` once the daemon is available.

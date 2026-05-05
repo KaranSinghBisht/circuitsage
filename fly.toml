@@ -1,0 +1,35 @@
+app = "circuitsage-api"
+primary_region = "bom"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  CIRCUITSAGE_HOSTED = "1"
+  CIRCUITSAGE_DEV = "0"
+  CIRCUITSAGE_HOSTED_RATE_LIMIT_PER_MINUTE = "30"
+  FRONTEND_ORIGIN = "https://circuitsage-api.fly.dev"
+  CIRCUITSAGE_DATABASE_PATH = "/data/circuitsage.db"
+  CIRCUITSAGE_UPLOAD_DIR = "/data/uploads"
+  OLLAMA_BASE_URL = "http://127.0.0.1:11434"
+  OLLAMA_MODEL = "gemma4:e4b"
+  OLLAMA_VISION_MODEL = "gemma4:e4b"
+  OLLAMA_MODELS = "/data/ollama"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 2
+  memory_mb = 4096
+
+[[mounts]]
+  source = "circuitsage_data"
+  destination = "/data"
+  initial_size = "10gb"

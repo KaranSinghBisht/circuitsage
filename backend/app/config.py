@@ -34,15 +34,18 @@ def _default_ollama_model() -> str:
 
 class Settings:
     app_name: str = "CircuitSage"
-    database_path: Path = BASE_DIR / "app" / "data" / "circuitsage.db"
-    upload_dir: Path = BASE_DIR / "app" / "uploads"
+    database_path: Path = Path(os.getenv("CIRCUITSAGE_DATABASE_PATH", BASE_DIR / "app" / "data" / "circuitsage.db"))
+    upload_dir: Path = Path(os.getenv("CIRCUITSAGE_UPLOAD_DIR", BASE_DIR / "app" / "uploads"))
     sample_data_dir: Path = PROJECT_ROOT / "sample_data" / "op_amp_lab"
+    frontend_dist_dir: Path = PROJECT_ROOT / "frontend" / "dist"
     ollama_base_url: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
     ollama_model: str = _default_ollama_model()
     ollama_vision_model: str = os.getenv("OLLAMA_VISION_MODEL", "gemma4:e4b")
     ollama_embed_model: str = os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text")
     dev_mode: bool = os.getenv("CIRCUITSAGE_DEV", "1") == "1"
     frontend_origin: str = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173")
+    hosted_demo: bool = os.getenv("CIRCUITSAGE_HOSTED", "0") == "1"
+    hosted_rate_limit_per_minute: int = int(os.getenv("CIRCUITSAGE_HOSTED_RATE_LIMIT_PER_MINUTE", "30"))
 
 
 @lru_cache

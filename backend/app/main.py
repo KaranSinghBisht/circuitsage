@@ -6,14 +6,17 @@ import json
 import shutil
 import uuid
 from collections import Counter
+from collections import deque
 from datetime import datetime
 from pathlib import Path
+from time import monotonic
 from typing import Annotated
 
 import qrcode
-from fastapi import Body, FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import Body, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, Response
+from fastapi.staticfiles import StaticFiles
 
 from .config import get_settings
 from .database import db, init_db, read_text_excerpt, row_to_dict, rows_to_dicts, utc_now
@@ -40,6 +43,7 @@ from .tools.schematic_to_netlist import image_file_to_base64, recognize_schemati
 
 app = FastAPI(title="CircuitSage API", version="0.1.0")
 settings = get_settings()
+_hosted_rate_buckets: dict[str, deque[float]] = {}
 
 app.add_middleware(
     CORSMiddleware,
@@ -48,6 +52,52 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+def _hosted_allowed_write(path: str) -> bool:
+    if path.startswith("/api/sessions/seed"):
+        return True
+    if path.startswith("/api/tools/schematic-to-netlist"):
+        return True
+    if not path.startswith("/api/sessions/"):
+        return False
+    return path.endswith(("/diagnose", "/measurements", "/measurements/stream", "/chat", "/report"))
+
+
+def _hosted_client_key(request: Request) -> str:
+    forwarded = request.headers.get("x-forwarded-for", "").split(",", 1)[0].strip()
+    return forwarded or (request.client.host if request.client else "unknown")
+
+
+def _hosted_rate_limited(request: Request) -> bool:
+    limit = max(settings.hosted_rate_limit_per_minute, 1)
+    key = _hosted_client_key(request)
+    now = monotonic()
+    bucket = _hosted_rate_buckets.setdefault(key, deque())
+    while bucket and now - bucket[0] > 60:
+        bucket.popleft()
+    if len(bucket) >= limit:
+        return True
+    bucket.append(now)
+    return False
+
+
+@app.middleware("http")
+async def hosted_demo_guard(request: Request, call_next):
+    if not settings.hosted_demo:
+        return await call_next(request)
+    path = request.url.path
+    if path.startswith("/api/companion") or "/bench" in path:
+        return JSONResponse(
+            {"detail": "Companion and Bench Mode need local LAN/native permissions and are disabled on the public hosted demo."},
+            status_code=403,
+        )
+    if path.startswith("/api/") and request.method in {"POST", "PATCH", "DELETE"}:
+        if request.method in {"PATCH", "DELETE"} or not _hosted_allowed_write(path):
+            return JSONResponse({"detail": "Public hosted demo is read-only except seeded demo actions."}, status_code=403)
+        if _hosted_rate_limited(request):
+            return JSONResponse({"detail": "Hosted demo rate limit exceeded. Try again in a minute."}, status_code=429)
+    return await call_next(request)
 
 
 @app.on_event("startup")
@@ -941,3 +991,7 @@ def get_lab_report_pdf(session_id: str) -> Response:
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{session_id}-circuitsage-report.pdf"'},
     )
+
+
+if settings.frontend_dist_dir.exists():
+    app.mount("/", StaticFiles(directory=settings.frontend_dist_dir, html=True), name="frontend")
