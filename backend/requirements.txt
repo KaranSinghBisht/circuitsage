@@ -6,4 +6,5 @@ httpx==0.28.1
 qrcode[pil]==8.0
 Pillow==11.0.0
 pytest==8.3.4
-
+chromadb==0.5.20
+sentence-transformers==3.3.1

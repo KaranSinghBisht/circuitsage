@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+VENV_PYTHON = ROOT / "backend" / ".venv" / "bin" / "python"
+if VENV_PYTHON.exists() and Path(sys.executable).resolve() != VENV_PYTHON.resolve():
+    os.execv(str(VENV_PYTHON), [str(VENV_PYTHON), *sys.argv])
 sys.path.insert(0, str(ROOT))
 
 from backend.app.services.vectorstore import ingest, reset  # noqa: E402
@@ -31,6 +35,9 @@ def topology_for(path: Path) -> str | None:
 
 
 def main() -> None:
+    old_json = ROOT / "backend" / "app" / "data" / "vectorstore.json"
+    if old_json.exists():
+        old_json.unlink()
     reset()
     counts: dict[str, int] = {}
     for path in sorted(KNOWLEDGE_ROOT.rglob("*")):

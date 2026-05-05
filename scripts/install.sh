@@ -13,6 +13,7 @@ npm --prefix apps/ios install || true
 
 if command -v ollama >/dev/null 2>&1; then
   ollama pull "${OLLAMA_MODEL:-gemma3:4b}"
+  ollama pull "${OLLAMA_EMBED_MODEL:-nomic-embed-text}"
   if [ -f train/output/circuitsage-lora-q4_k_m.gguf ]; then
     ollama create circuitsage:latest -f train/output/circuitsage.Modelfile
   fi

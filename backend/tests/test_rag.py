@@ -3,11 +3,19 @@ from __future__ import annotations
 from pathlib import Path
 
 from app.services import vectorstore
+from app.services.embedder import bow_embed_text
 from app.tools import rag
 
 
+def isolated_store(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(vectorstore, "CHROMA_PATH", tmp_path / "chroma")
+    monkeypatch.setattr(vectorstore, "_CLIENT", None)
+    monkeypatch.setattr(vectorstore, "_COLLECTION", None)
+    monkeypatch.setattr(vectorstore, "embed_with_metadata", lambda text: (bow_embed_text(text), "bow"))
+
+
 def test_retrieve_returns_right_doc_and_filters(tmp_path: Path, monkeypatch) -> None:
-    monkeypatch.setattr(vectorstore, "VECTORSTORE_PATH", tmp_path / "vectors.json")
+    isolated_store(tmp_path, monkeypatch)
     monkeypatch.setattr(rag, "vector_query", vectorstore.query)
     vectorstore.reset()
     vectorstore.ingest(
@@ -29,7 +37,7 @@ def test_retrieve_returns_right_doc_and_filters(tmp_path: Path, monkeypatch) -> 
 
 
 def test_retrieve_places_session_artifacts_first(tmp_path: Path, monkeypatch) -> None:
-    monkeypatch.setattr(vectorstore, "VECTORSTORE_PATH", tmp_path / "vectors.json")
+    isolated_store(tmp_path, monkeypatch)
     monkeypatch.setattr(rag, "vector_query", vectorstore.query)
     vectorstore.reset()
     vectorstore.ingest("corpus#0", "op amp generic reference", {"source": "textbook/op_amp.md"})
