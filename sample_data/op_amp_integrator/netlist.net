@@ -1,0 +1,6 @@
+Vin vin 0 PULSE(-1 1 0 1u 1u 500u 1m)
+Rin vin n_inv 10k
+Cf vout n_inv 100n
+Rleak vout n_inv 1meg
+E1 vout 0 n_noninv n_inv 100000
+Rbias n_noninv 0 1meg

@@ -1,0 +1,1 @@
+My differentiator output is mostly noise and spikes.

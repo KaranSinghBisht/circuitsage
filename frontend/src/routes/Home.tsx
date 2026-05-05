@@ -12,6 +12,12 @@ const DEMO_TILES = [
   { slug: "voltage-divider", title: "Voltage Divider", detail: "loaded output pulled below expectation" },
   { slug: "bjt-common-emitter", title: "BJT Common Emitter", detail: "collector biased into saturation" },
   { slug: "op-amp-noninverting", title: "Non-Inverting Op-Amp", detail: "unity gain instead of configured gain" },
+  { slug: "active-highpass", title: "Active High-Pass", detail: "cutoff shifted by capacitor or bias fault" },
+  { slug: "integrator", title: "Op-Amp Integrator", detail: "ramp rails from feedback or leak path fault" },
+  { slug: "schmitt-trigger", title: "Schmitt Trigger", detail: "missing hysteresis and threshold chatter" },
+  { slug: "timer-555-astable", title: "555 Astable", detail: "timing node or discharge pin fault" },
+  { slug: "nmos-low-side", title: "NMOS Switch", detail: "gate drive and source reference fault" },
+  { slug: "instrumentation-amplifier", title: "Instrumentation Amp", detail: "gain resistor or common-mode issue" },
 ];
 
 export function Home() {

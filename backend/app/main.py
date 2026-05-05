@@ -621,6 +621,48 @@ async def seed_op_amp_noninverting_demo() -> dict:
     )
 
 
+SEED_TO_TOPOLOGY = {
+    "full-wave-rectifier": "full_wave_rectifier",
+    "active-highpass": "active_highpass_filter",
+    "integrator": "op_amp_integrator",
+    "differentiator": "op_amp_differentiator",
+    "schmitt-trigger": "schmitt_trigger",
+    "timer-555-astable": "timer_555_astable",
+    "nmos-low-side": "nmos_low_side_switch",
+    "instrumentation-amplifier": "instrumentation_amplifier",
+}
+
+
+@app.post("/api/sessions/seed/{slug}")
+async def seed_topology_demo(slug: str) -> dict:
+    topology = SEED_TO_TOPOLOGY.get(slug)
+    if not topology:
+        raise HTTPException(status_code=404, detail="Seed not found")
+    catalog = CATALOG.get(topology, {"label": topology.replace("_", " "), "faults": []})
+    first_fault = (catalog.get("faults") or [{"name": "starter evidence", "requires_measurements": ["observed_node"]}])[0]
+    sample_dir = settings.sample_data_dir.parent / topology
+    samples = []
+    for filename in ("lab_manual_excerpt.md", "netlist.net", "expected_waveform.csv", "observed_fault.csv", "student_question.txt"):
+        if (sample_dir / filename).exists():
+            samples.append((_artifact_kind(filename), filename))
+    measurement = MeasurementCreate(
+        label=(first_fault.get("requires_measurements") or ["observed_node"])[0],
+        value=1.0,
+        unit="V",
+        mode="DC",
+        context=f"Seed measurement for {first_fault.get('name')}",
+    )
+    return await _seed_demo(
+        topology=topology,
+        title=f"{catalog.get('label', topology)} demo",
+        notes=f"Seeded topology-pack scenario for {topology}.",
+        sample_dir=sample_dir,
+        samples=samples,
+        measurements=[measurement],
+        question=f"My {catalog.get('label', topology)} is not matching the expected behavior. What should I check?",
+    )
+
+
 @app.post("/api/sessions/{session_id}/artifacts")
 async def upload_artifact(
     session_id: str,

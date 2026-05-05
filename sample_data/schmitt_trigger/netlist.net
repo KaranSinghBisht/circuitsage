@@ -1,0 +1,5 @@
+Vin vin 0 SIN(0 2 100)
+Rin vin n_inv 10k
+Rfb vout n_noninv 100k
+Rref n_noninv 0 47k
+E1 vout 0 n_noninv n_inv 100000

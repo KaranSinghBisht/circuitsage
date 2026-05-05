@@ -196,6 +196,20 @@ def _expected_behavior(topology: str, netlist: dict[str, Any]) -> dict[str, Any]
         return {"summary": "collector biased in active region with inverted AC gain", **computed}
     if topology == "full_wave_rectifier":
         return {"summary": "positive rectified output after two diode drops", **computed}
+    if topology == "active_highpass_filter":
+        return {"summary": "low frequencies attenuate while higher frequencies pass with op-amp gain", **computed}
+    if topology == "op_amp_integrator":
+        return {"summary": "output ramps in response to input current through the input resistor", **computed}
+    if topology == "op_amp_differentiator":
+        return {"summary": "output is proportional to the input signal slope", **computed}
+    if topology == "schmitt_trigger":
+        return {"summary": "output switches cleanly at upper and lower thresholds set by positive feedback", **computed}
+    if topology == "timer_555_astable":
+        return {"summary": "555 output oscillates with timing set by RA, RB, and C", **computed}
+    if topology == "nmos_low_side_switch":
+        return {"summary": "logic-high gate drives load current through the low-side MOSFET", **computed}
+    if topology == "instrumentation_amplifier":
+        return {"summary": "three-op-amp differential gain rejects common-mode input", **computed}
     return {
         "summary": "Circuit topology is not identified yet.",
         "needed": ["netlist or schematic", "expected behavior", "observed node measurement"],

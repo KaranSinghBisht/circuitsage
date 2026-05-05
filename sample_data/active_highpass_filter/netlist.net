@@ -1,0 +1,6 @@
+Vin vin 0 SIN(0 1 1k)
+C1 vin n_inv 10n
+Rf vout n_inv 100k
+Rb n_inv 0 1meg
+E1 vout 0 n_noninv n_inv 100000
+Rbias n_noninv 0 1meg

@@ -172,8 +172,67 @@ def _detect_full_wave_rectifier(components: list[dict[str, Any]], sources: list[
     return "full_wave_rectifier", computed
 
 
+def _detect_timer_555(components: list[dict[str, Any]]) -> tuple[str, dict[str, Any]] | None:
+    if any("555" in c.get("subckt", "").lower() or "555" in c.get("model", "").lower() for c in components):
+        resistors = [c for c in components if c["kind"] == "resistor"]
+        capacitors = [c for c in components if c["kind"] == "capacitor"]
+        return "timer_555_astable", {"resistor_count": len(resistors), "capacitor_count": len(capacitors)}
+    return None
+
+
+def _detect_nmos_low_side(components: list[dict[str, Any]]) -> tuple[str, dict[str, Any]] | None:
+    for mosfet in [c for c in components if c["kind"] == "mosfet"]:
+        drain, gate, source, _body = mosfet["nodes"][:4]
+        if _norm_node(source) == "0":
+            return "nmos_low_side_switch", {"drain_node": drain, "gate_node": gate, "source_node": source}
+    return None
+
+
+def _detect_instrumentation_amp(components: list[dict[str, Any]]) -> tuple[str, dict[str, Any]] | None:
+    opamps = [c for c in components if c["kind"] in {"controlled_source", "subcircuit"}]
+    resistors = [c for c in components if c["kind"] == "resistor"]
+    if len(opamps) >= 3 and len(resistors) >= 5:
+        return "instrumentation_amplifier", {"op_amp_count": len(opamps), "resistor_count": len(resistors)}
+    return None
+
+
+def _detect_special_op_amp_filters(components: list[dict[str, Any]]) -> tuple[str, dict[str, Any]] | None:
+    controlled = [c for c in components if c["kind"] in {"controlled_source", "subcircuit"}]
+    if not controlled:
+        return None
+    resistors = [c for c in components if c["kind"] == "resistor"]
+    capacitors = [c for c in components if c["kind"] == "capacitor"]
+    output_nodes = {c["nodes"][0] for c in controlled if c["nodes"]}
+    output_nodes.add("vout")
+    for output in output_nodes:
+        for cap in capacitors:
+            if output in cap["nodes"]:
+                inv = next(n for n in cap["nodes"] if n != output)
+                if any(inv in r["nodes"] and "vin" in [n.lower() for n in r["nodes"]] for r in resistors):
+                    return "op_amp_integrator", {"feedback_capacitance_f": cap["value"]}
+        for resistor in resistors:
+            if output in resistor["nodes"]:
+                inv = next(n for n in resistor["nodes"] if n != output)
+                input_cap = next((c for c in capacitors if inv in c["nodes"] and "vin" in [n.lower() for n in c["nodes"]]), None)
+                if input_cap:
+                    if any(inv in r["nodes"] and "0" in [_norm_node(n) for n in r["nodes"]] for r in resistors if r is not resistor):
+                        return "active_highpass_filter", {"input_capacitance_f": input_cap["value"], "feedback_resistance_ohms": resistor["value"]}
+                    return "op_amp_differentiator", {"input_capacitance_f": input_cap["value"], "feedback_resistance_ohms": resistor["value"]}
+                noninv_feedback = any(
+                    output in r["nodes"] and any(n.lower() in {"n_noninv", "noninv", "vp"} for n in r["nodes"])
+                    for r in resistors
+                )
+                if noninv_feedback:
+                    return "schmitt_trigger", {"feedback_resistance_ohms": resistor["value"]}
+    return None
+
+
 def _detect_topology(components: list[dict[str, Any]], sources: list[dict[str, Any]]) -> tuple[str, dict[str, Any]]:
     for detector in (
+        lambda: _detect_timer_555(components),
+        lambda: _detect_nmos_low_side(components),
+        lambda: _detect_instrumentation_amp(components),
+        lambda: _detect_special_op_amp_filters(components),
         lambda: _detect_op_amp(components, sources),
         lambda: _detect_rc_lowpass(components),
         lambda: _detect_bjt_common_emitter(components),

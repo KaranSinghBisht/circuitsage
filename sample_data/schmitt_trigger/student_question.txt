@@ -1,0 +1,1 @@
+My Schmitt trigger chatters instead of switching cleanly.

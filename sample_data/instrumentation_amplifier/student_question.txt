@@ -1,0 +1,1 @@
+My instrumentation amplifier gain is wrong and common-mode rejection is poor.

@@ -1,0 +1,6 @@
+Vcc vcc 0 DC 5
+R1 vcc discharge 10k
+R2 discharge timing 47k
+C1 timing 0 10u
+XU1 0 trigger output reset control threshold discharge vcc NE555
+Rload output 0 1k

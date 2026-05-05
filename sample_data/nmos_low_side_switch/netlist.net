@@ -1,0 +1,4 @@
+Vlogic gate 0 DC 5
+Vload vload 0 DC 12
+Rload vload drain 100
+M1 drain gate 0 0 IRLZ44N
