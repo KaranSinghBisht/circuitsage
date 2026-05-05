@@ -1,6 +1,6 @@
 SHELL := /usr/bin/env bash
 
-.PHONY: install demo test lint clean
+.PHONY: install demo demo-seed test lint clean
 
 BACKEND_PY := backend/.venv/bin/python
 UVICORN := backend/.venv/bin/uvicorn
@@ -14,6 +14,9 @@ demo:
 	@sleep 2
 	@open http://localhost:5173
 	@npm --prefix frontend run dev
+
+demo-seed:
+	PYTHONPATH=backend "$(BACKEND_PY)" scripts/demo_seed.py
 
 test:
 	npm run test:backend
