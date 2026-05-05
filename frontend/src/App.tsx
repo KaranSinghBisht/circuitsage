@@ -7,10 +7,12 @@ import { Educator } from "./routes/Educator";
 import { Faults } from "./routes/Faults";
 import { Uncertainty } from "./routes/Uncertainty";
 import { AccessibilityProvider } from "./hooks/useA11yPrefs";
+import { ThemeToggle } from "./components/ThemeToggle";
 
 export default function App() {
   return (
     <AccessibilityProvider>
+      <ThemeToggle />
       <Switch>
         <Route path="/" component={Home} />
         <Route path="/studio/:id">{({ id }) => <Studio sessionId={id} />}</Route>
