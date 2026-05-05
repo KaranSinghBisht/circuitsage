@@ -1,0 +1,9 @@
+{
+  "title": "CircuitSage Faults v1",
+  "id": "karansinghbisht/circuitsage-faults-v1",
+  "subtitle": "Synthetic circuit-fault Q&A dataset for fine-tuning Gemma",
+  "description": "6,000 instruction-tuned chat examples covering 13 low-voltage analog/digital circuit topologies (op-amp inverting/non-inverting, RC low-pass, voltage divider, BJT common-emitter, full-wave rectifier, active high-pass, integrator, differentiator, Schmitt trigger, 555 astable, NMOS low-side switch, instrumentation amplifier) plus a safety-refusal branch. Built for the CircuitSage Gemma 4 Good Hackathon submission. Each example is `{messages:[system,user,assistant]}` with the assistant emitting structured-diagnosis JSON. 4,978 unique user prompts; max duplicate = 4. See https://github.com/<user>/circuitsage for code and trained adapter.",
+  "isPrivate": false,
+  "licenses": [{"name": "MIT"}],
+  "keywords": ["education", "electronics", "fine-tuning", "lora", "gemma", "function-calling"]
+}

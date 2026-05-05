@@ -145,15 +145,27 @@
   },
   "hotPaths": [
     {
-      "path": "CircuitSage_AGENT_HANDOFF.md",
-      "accessCount": 2,
-      "lastAccessed": 1777982981296,
+      "path": "backend/app/services/ollama_client.py",
+      "accessCount": 5,
+      "lastAccessed": 1778022031308,
       "type": "file"
     },
     {
       "path": "backend/app/services/agent_orchestrator.py",
+      "accessCount": 4,
+      "lastAccessed": 1778021866366,
+      "type": "file"
+    },
+    {
+      "path": "README.md",
+      "accessCount": 3,
+      "lastAccessed": 1778022296141,
+      "type": "file"
+    },
+    {
+      "path": "CircuitSage_AGENT_HANDOFF.md",
       "accessCount": 2,
-      "lastAccessed": 1777997683513,
+      "lastAccessed": 1777982981296,
       "type": "file"
     },
     {
@@ -169,12 +181,6 @@
       "type": "file"
     },
     {
-      "path": "backend/app/services/ollama_client.py",
-      "accessCount": 2,
-      "lastAccessed": 1777997716980,
-      "type": "file"
-    },
-    {
       "path": "backend/app/main.py",
       "accessCount": 2,
       "lastAccessed": 1777997717638,
@@ -184,12 +190,6 @@
       "path": "backend/app/tools/waveform_analysis.py",
       "accessCount": 2,
       "lastAccessed": 1778004781032,
-      "type": "file"
-    },
-    {
-      "path": "README.md",
-      "accessCount": 1,
-      "lastAccessed": 1777982925366,
       "type": "file"
     },
     {

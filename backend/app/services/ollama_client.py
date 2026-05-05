@@ -44,6 +44,10 @@ class OllamaClient:
                 }
             except httpx.HTTPStatusError as exc:
                 body = exc.response.text.lower()
+                if exc.response.status_code in {400, 404, 500} and "tools" in payload and ("does not support tools" in body or "tools" in body):
+                    payload.pop("tools", None)
+                    fallback = True
+                    continue
                 if format_json and exc.response.status_code in {400, 500} and "format" in body and "format" in payload:
                     payload.pop("format", None)
                     fallback = True

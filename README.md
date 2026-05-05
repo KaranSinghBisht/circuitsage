@@ -4,7 +4,17 @@
 
 CircuitSage is a local-first Gemma lab partner for electronics students. It keeps simulation files, bench evidence, screenshots, measurements, datasheets, tool calls, and reports in one debugging session, then asks for the next useful measurement instead of pretending a circuit fault can be guessed from a vague symptom.
 
-![CircuitSage cover placeholder](media/cover.png)
+![CircuitSage cover](media/cover.png)
+
+| Studio | Educator | Faults |
+|---|---|---|
+| ![Studio](media/screenshots/02_studio.png) | ![Educator](media/screenshots/06_educator.png) | ![Faults](media/screenshots/05_faults.png) |
+| Per-session debugging workspace with tool-call timeline. | Class-wide misconception aggregator (476 sessions, 13 fault classes). | Catalog of 39 faults across 13 topologies. |
+
+| Bench | Uncertainty | Press kit |
+|---|---|---|
+| ![Bench](media/screenshots/03_bench.png) | ![Uncertainty](media/screenshots/07_uncertainty.png) | ![Press](media/screenshots/08_press.png) |
+| Phone-friendly measurement entry. | Eight cases where CircuitSage admits "not enough evidence". | Animated B-roll for the demo video. |
 
 ## Quickstart
 

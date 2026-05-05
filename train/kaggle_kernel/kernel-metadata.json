@@ -1,0 +1,14 @@
+{
+  "id": "karansinghbisht/circuitsage-gemma-lora",
+  "title": "CircuitSage Gemma LoRA",
+  "code_file": "circuitsage_lora.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": false,
+  "enable_gpu": true,
+  "enable_tpu": false,
+  "enable_internet": true,
+  "dataset_sources": ["karansinghbisht/circuitsage-faults-v1"],
+  "competition_sources": [],
+  "kernel_sources": []
+}
