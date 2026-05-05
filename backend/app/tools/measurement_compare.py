@@ -24,10 +24,20 @@ def compare_expected_vs_observed(
             "recommended_next_measurement": recommended or next_key,
         }
 
+    spectral = (observed_summary or {}).get("spectral_mismatch")
+    if spectral:
+        mismatch = spectral.get("mismatch_type", "spectral_mismatch")
+        return {
+            "mismatch_type": mismatch,
+            "expected_gain": expected_gain,
+            "likely_fault_categories": ["component_value", "feedback", "input_range", "stability"],
+            "recommended_next_measurement": "scope_fft_or_timebase",
+            "spectral": spectral,
+        }
+
     return {
         "mismatch_type": "needs_more_evidence",
         "expected_gain": expected_gain,
         "likely_fault_categories": ["unknown"],
         "recommended_next_measurement": "vout_dc_and_supply_rails",
     }
-

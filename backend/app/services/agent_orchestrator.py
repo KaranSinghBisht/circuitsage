@@ -16,7 +16,7 @@ from ..tools.report_builder import generate_report
 from ..tools.safety_check import safety_check
 from ..tools.schematic_to_netlist import image_file_to_base64, recognize_schematic
 from ..tools.vision import describe_artifact
-from ..tools.waveform_analysis import analyze_waveform_csv
+from ..tools.waveform_analysis import analyze_waveform_csv, compare_waveform_spectra
 from .fault_catalog import build_catalog_diagnosis
 from .ollama_client import OllamaClient, parse_json_response
 from .prompt_templates import AGENTIC_SYSTEM_PROMPT, STRUCTURED_DIAGNOSIS_PROMPT
@@ -330,6 +330,9 @@ async def diagnose_session(session_id: str, user_message: str | None = None, lan
     if waveform_artifact:
         started = time.perf_counter()
         waveform = analyze_waveform_csv(_artifact_path(waveform_artifact))
+        expected_waveform = _find_artifact(artifacts, "waveform_csv", "expected")
+        if expected_waveform and expected_waveform["id"] != waveform_artifact["id"]:
+            waveform["spectral_mismatch"] = compare_waveform_spectra(_artifact_path(expected_waveform), _artifact_path(waveform_artifact))
         tool_calls.append(_tool_call("analyze_waveform_csv", started, waveform))
 
     manual = {"snippets": []}
