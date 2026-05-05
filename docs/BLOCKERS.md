@@ -37,3 +37,7 @@
 ## A3 CI validation
 
 - `.github/workflows/ci.yml` was created on 2026-05-06 and parsed locally as YAML with backend, frontend, and dataset jobs. GitHub Actions cannot be run from this local workspace, and `actionlint` is not installed (`command -v actionlint` returned no path), so final CI-green validation remains pending until a branch is pushed.
+
+## C1 eval harness run
+
+- `backend/.venv/bin/python train/eval/harness.py --model gemma3:4b` was attempted on 2026-05-06, but Ollama was not reachable at `http://localhost:11434` (`httpx.ConnectError: [Errno 61] Connection refused`). The 200-row eval set exists and both `python3 -c "import train.eval.harness"` and `backend/.venv/bin/python -c "import train.eval.harness"` pass. Re-run the harness after starting Ollama and pulling `gemma3:4b`.
