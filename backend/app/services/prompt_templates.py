@@ -8,18 +8,17 @@ Return structured JSON when requested."""
 STRUCTURED_DIAGNOSIS_PROMPT = """Given the following lab context, produce a structured diagnosis.
 
 Return valid JSON matching this schema:
-{
+{{
   "experiment_type": string,
   "expected_behavior": object,
   "observed_behavior": object,
-  "likely_faults": [{"fault": string, "confidence": number, "why": string}],
-  "next_measurement": {"label": string, "expected": string, "instruction": string},
-  "safety": {"risk_level": string, "warnings": [string]},
+  "likely_faults": [{{"fault": string, "confidence": number, "why": string}}],
+  "next_measurement": {{"label": string, "expected": string, "instruction": string}},
+  "safety": {{"risk_level": string, "warnings": [string]}},
   "student_explanation": string,
   "confidence": "low" | "medium" | "medium_high" | "high"
-}
+}}
 
 Lab context:
 {context}
 """
-

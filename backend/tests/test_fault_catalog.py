@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.services.fault_catalog import CATALOG, build_catalog_diagnosis
+from app.services.fault_catalog import build_catalog_diagnosis, candidates, planner_next_measurement
 from app.tools.measurement_compare import compare_expected_vs_observed
 from app.tools.parse_netlist import parse_netlist_file
 from app.tools.waveform_analysis import analyze_waveform_csv
@@ -12,9 +12,17 @@ ROOT = Path(__file__).resolve().parents[2]
 SAMPLES = ROOT / "sample_data" / "op_amp_lab"
 
 
-def test_op_amp_catalog_contains_seed_fault() -> None:
-    fault_ids = {fault["id"] for fault in CATALOG["op_amp_inverting"]["faults"]}
-    assert "op_amp_reference_input_floating" in fault_ids
+def test_op_amp_candidates_match_expected_ids() -> None:
+    assert [fault["id"] for fault in candidates("op_amp_inverting")] == [
+        "floating_noninverting_input",
+        "missing_feedback",
+        "rail_imbalance",
+    ]
+    assert candidates("unknown_topology") == []
+
+
+def test_planner_next_measurement_starts_with_non_inverting_input() -> None:
+    assert planner_next_measurement("op_amp_inverting", set())["label"] == "non_inverting_input_voltage"
 
 
 def test_catalog_ranks_op_amp_reference_fault_for_seed_case() -> None:
@@ -37,7 +45,7 @@ def test_catalog_ranks_op_amp_reference_fault_for_seed_case() -> None:
     )
 
     top_fault = diagnosis["likely_faults"][0]
-    assert top_fault["id"] == "op_amp_reference_input_floating"
+    assert top_fault["id"] == "floating_noninverting_input"
     assert top_fault["name"] == "Floating or incorrectly biased non-inverting input"
     assert diagnosis["next_measurement"]["label"] == "Voltage at non-inverting input pin"
 
@@ -57,6 +65,6 @@ def test_catalog_uses_confirmation_step_after_reference_measurement() -> None:
         {"risk_level": "low_voltage_lab", "warnings": []},
     )
 
-    assert diagnosis["likely_faults"][0]["id"] == "op_amp_reference_input_floating"
+    assert diagnosis["likely_faults"][0]["id"] == "floating_noninverting_input"
     assert diagnosis["next_measurement"]["label"] == "Retest Vout after grounding non-inverting input"
     assert diagnosis["session_status"] == "resolved"

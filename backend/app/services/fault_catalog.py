@@ -11,11 +11,13 @@ CATALOG: dict[str, dict[str, Any]] = {
         "label": "Inverting op-amp amplifier",
         "faults": [
             {
-                "id": "op_amp_reference_input_floating",
+                "id": "floating_noninverting_input",
                 "name": "Floating or incorrectly biased non-inverting input",
                 "category": "reference_input",
                 "base_confidence": 0.58,
                 "why": "A missing 0 V reference on the non-inverting input can force the op-amp output into rail saturation even when the feedback resistor ratio is correct.",
+                "requires_measurements": ["non_inverting_input_voltage"],
+                "verification_test": "Measure the non-inverting input with respect to circuit ground.",
                 "next_without_measurement": {
                     "label": "Voltage at non-inverting input pin",
                     "expected": "approximately 0 V",
@@ -28,11 +30,13 @@ CATALOG: dict[str, dict[str, Any]] = {
                 },
             },
             {
-                "id": "op_amp_feedback_open",
+                "id": "missing_feedback",
                 "name": "Feedback path disconnected or wired to the wrong node",
                 "category": "feedback",
                 "base_confidence": 0.42,
                 "why": "Without negative feedback from output to the inverting input, an op-amp behaves like a comparator and can latch near a rail.",
+                "requires_measurements": ["feedback_continuity"],
+                "verification_test": "Power off and ohm-meter Rf between Vout and the inverting input node.",
                 "next_without_measurement": {
                     "label": "Feedback resistor continuity",
                     "expected": "Rf connects from Vout to the inverting input node",
@@ -40,11 +44,13 @@ CATALOG: dict[str, dict[str, Any]] = {
                 },
             },
             {
-                "id": "op_amp_ground_or_supply_reference",
+                "id": "rail_imbalance",
                 "name": "Power rail or common ground issue",
                 "category": "power_rails",
                 "base_confidence": 0.28,
                 "why": "A missing common ground or rail reference can make otherwise correct node voltages appear inconsistent at the bench.",
+                "requires_measurements": ["v_supply_pos", "v_supply_neg", "v_ground"],
+                "verification_test": "Measure both rails with respect to the circuit ground/reference node.",
                 "next_without_measurement": {
                     "label": "Common ground continuity",
                     "expected": "signal source, circuit ground, and supply reference share one 0 V node",
@@ -93,6 +99,28 @@ def _measurement_by_tokens(measurements: list[dict[str, Any]], tokens: tuple[str
     return None
 
 
+def candidates(topology: str, comparison: dict[str, Any] | None = None) -> list[Fault]:
+    if topology not in CATALOG or topology == "unknown":
+        return []
+    return CATALOG[topology]["faults"]
+
+
+def planner_next_measurement(topology: str, taken: set[str]) -> dict[str, str]:
+    for fault in candidates(topology):
+        for needed in fault.get("requires_measurements", []):
+            if needed not in taken:
+                return {
+                    "label": needed,
+                    "expected": "topology-dependent",
+                    "instruction": f"Measure {needed} per the verification test for '{fault['name']}'.",
+                }
+    return {
+        "label": "general_inspection",
+        "expected": "documented bench observation",
+        "instruction": "Inspect supply rails, ground reference, and feedback continuity.",
+    }
+
+
 def _rank_faults(
     topology: str,
     comparison: dict[str, Any],
@@ -110,14 +138,14 @@ def _rank_faults(
             score += 0.12
         if mismatch_type == "saturation_instead_of_linear_amplification" and topology.startswith("op_amp"):
             score += 0.08
-        if fault["id"] == "op_amp_reference_input_floating" and noninv:
+        if fault["id"] == "floating_noninverting_input" and noninv:
             try:
                 if abs(float(noninv["value"])) > 0.5:
                     score += 0.16
             except (TypeError, ValueError):
                 pass
         next_measurement = fault.get("next_without_measurement", {})
-        if fault["id"] == "op_amp_reference_input_floating" and noninv:
+        if fault["id"] == "floating_noninverting_input" and noninv:
             next_measurement = fault.get("next_after_measurement", next_measurement)
 
         ranked.append(
