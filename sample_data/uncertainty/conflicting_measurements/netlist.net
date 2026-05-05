@@ -1,0 +1,8 @@
+* Complete op-amp netlist, but student measurements conflict
+Vin vin 0 DC 1
+VCC V+ 0 DC 12
+VEE V- 0 DC -12
+Rin vin n_inv 10k
+Rf vout n_inv 47k
+E1 vout 0 0 n_inv 100000
+.end

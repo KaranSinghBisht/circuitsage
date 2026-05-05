@@ -1,0 +1,10 @@
+{
+  "title": "RC low-pass missing capacitor",
+  "experiment_type": "rc_lowpass",
+  "expected_confidence": "low",
+  "safety_refusal": false,
+  "missing": "capacitor and output reference evidence",
+  "measurements": [
+    {"label": "Vin", "value": 1.0, "unit": "V", "mode": "DC", "context": "Input source is present."}
+  ]
+}

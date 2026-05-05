@@ -1,0 +1,6 @@
+* Inverting op-amp fragment with no supply rails documented
+Vin vin 0 DC 1
+Rin vin n_inv 10k
+Rf vout n_inv 47k
+E1 vout 0 0 n_inv 100000
+.end

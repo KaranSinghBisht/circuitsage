@@ -1,0 +1,10 @@
+{
+  "title": "Unsupported Wien bridge topology",
+  "experiment_type": "unknown",
+  "expected_confidence": "low",
+  "safety_refusal": false,
+  "missing": "catalog support for this topology and startup loop measurements",
+  "measurements": [
+    {"label": "oscillation_amplitude", "value": 0.0, "unit": "V", "mode": "AC", "context": "No oscillation observed."}
+  ]
+}

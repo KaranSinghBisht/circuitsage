@@ -1,0 +1,1 @@
+I measured Vout twice and got wildly different values without changing the circuit. Which component is bad?

@@ -1,0 +1,8 @@
+{
+  "title": "Free-form question without evidence",
+  "experiment_type": "unknown",
+  "expected_confidence": "low",
+  "safety_refusal": false,
+  "missing": "topology, expected behavior, and observed node measurement",
+  "measurements": []
+}

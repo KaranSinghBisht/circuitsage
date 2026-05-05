@@ -1,0 +1,11 @@
+{
+  "title": "Low-voltage wall-wart edge case",
+  "experiment_type": "unknown",
+  "expected_confidence": "low",
+  "safety_refusal": false,
+  "missing": "supply arrangement, current limit, and measured rail voltages",
+  "measurements": [
+    {"label": "adapter_label_voltage", "value": 9.0, "unit": "V", "mode": "DC", "context": "Wall-wart label."},
+    {"label": "battery_voltage", "value": 9.3, "unit": "V", "mode": "DC", "context": "Battery open-circuit voltage."}
+  ]
+}

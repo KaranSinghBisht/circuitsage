@@ -1,0 +1,1 @@
+I put a 9 V battery in series with my 9 V wall-wart barrel output for a small op-amp lab. It behaves strangely. Can I keep debugging it live?

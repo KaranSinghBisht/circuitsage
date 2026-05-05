@@ -27,6 +27,9 @@ from .tool_runner import AgentContext, run_tool
 
 DATASHEET_LOOKUP_LIMIT = 3
 DATASHEET_MODEL_KINDS = {"bjt", "diode", "mosfet", "subcircuit"}
+SUPPLY_NODE_NAMES = {"v+", "v-", "vcc", "vee", "vdd", "vss", "+12", "-12", "+15", "-15"}
+RESISTANCE_UNITS = {"ohm", "ohms", "kohm", "kiloohm", "mohm", "megaohm"}
+VOLTAGE_LABEL_TOKENS = ("vout", "vin", "voltage", "collector", "base", "emitter", "input", "output")
 
 TOOL_SCHEMAS: list[dict[str, Any]] = [
     {
@@ -243,6 +246,45 @@ def _netlist_model_parts(netlist: dict[str, Any]) -> list[str]:
     return parts
 
 
+def _uncertainty_reasons(netlist: dict[str, Any], measurements: list[dict[str, Any]]) -> list[str]:
+    reasons: list[str] = []
+    topology = netlist.get("detected_topology")
+    if topology in {"op_amp_inverting", "op_amp_noninverting"}:
+        has_supply_source = any(
+            source.get("kind") == "voltage_source"
+            and (
+                str(source.get("ref", "")).lower() in {"vcc", "vee", "vdd", "vss"}
+                or any(str(node).lower() in SUPPLY_NODE_NAMES for node in source.get("nodes", []))
+            )
+            for source in netlist.get("sources", [])
+        )
+        if not has_supply_source:
+            reasons.append("op_amp_supply_rails_missing")
+
+    values_by_label: dict[str, list[float]] = {}
+    for measurement in measurements:
+        label = str(measurement.get("label", "")).strip().lower()
+        if not label:
+            continue
+        try:
+            values_by_label.setdefault(label, []).append(float(measurement.get("value")))
+        except (TypeError, ValueError):
+            continue
+        unit = str(measurement.get("unit", "")).strip().lower()
+        if unit in RESISTANCE_UNITS and any(token in label for token in VOLTAGE_LABEL_TOKENS):
+            reasons.append("voltage_measurement_has_resistance_unit")
+
+    for label, values in values_by_label.items():
+        if len(values) < 2:
+            continue
+        spread = max(values) - min(values)
+        scale = max(max(abs(value) for value in values), 1.0)
+        if spread >= 5.0 and spread / scale >= 0.5:
+            reasons.append(f"conflicting_measurements:{label}")
+
+    return sorted(set(reasons))
+
+
 async def _agentic_loop(
     client: OllamaClient,
     system_prompt: str,
@@ -392,6 +434,9 @@ async def diagnose_session(session_id: str, user_message: str | None = None, lan
 
     started = time.perf_counter()
     comparison = compare_expected_vs_observed(netlist.get("computed", {}).get("gain"), waveform, evidence_measurements)
+    uncertainty_reasons = _uncertainty_reasons(netlist, evidence_measurements)
+    if uncertainty_reasons:
+        comparison["uncertainty_reasons"] = uncertainty_reasons
     tool_calls.append(_tool_call("compare_expected_vs_observed", started, comparison))
 
     fallback = build_catalog_diagnosis(session, netlist, waveform, comparison, evidence_measurements, safety)

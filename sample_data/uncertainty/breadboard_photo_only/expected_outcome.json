@@ -1,0 +1,9 @@
+{
+  "title": "Breadboard photo without schematic",
+  "experiment_type": "unknown",
+  "expected_confidence": "low",
+  "safety_refusal": false,
+  "missing": "schematic or netlist plus one labeled measurement",
+  "breadboard_photo": true,
+  "measurements": []
+}

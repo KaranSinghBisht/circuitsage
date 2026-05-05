@@ -1,0 +1,1 @@
+The inverting op-amp output is wrong, but this exported netlist does not show the op-amp supply pins. Can you identify the fault anyway?

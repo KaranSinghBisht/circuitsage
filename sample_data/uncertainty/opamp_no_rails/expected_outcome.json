@@ -1,0 +1,11 @@
+{
+  "title": "Op-amp netlist missing rails",
+  "experiment_type": "op_amp_inverting",
+  "expected_confidence": "low",
+  "safety_refusal": false,
+  "missing": "positive and negative op-amp supply rails",
+  "expected_next_label": "supply_rail_measurements",
+  "measurements": [
+    {"label": "Vout", "value": 11.7, "unit": "V", "mode": "DC", "context": "Output appears saturated."}
+  ]
+}

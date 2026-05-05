@@ -1,0 +1,1 @@
+Here is a breadboard photo. The output looks wrong, can you tell me the exact failed component?

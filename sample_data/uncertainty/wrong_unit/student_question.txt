@@ -1,0 +1,1 @@
+The divider output is wrong. I entered the Vout reading from my meter, but I may have been in the wrong meter mode.

@@ -1,0 +1,1 @@
+This Wien bridge oscillator network will not start. Which topology fault from the catalog applies?

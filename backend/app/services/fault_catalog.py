@@ -233,6 +233,33 @@ def _observed_behavior(waveform: dict[str, Any], comparison: dict[str, Any], mea
     }
 
 
+def _uncertainty_next_measurement(reasons: list[str]) -> dict[str, str]:
+    if any(reason.startswith("conflicting_measurements:") for reason in reasons):
+        label = next(reason.split(":", 1)[1] for reason in reasons if reason.startswith("conflicting_measurements:"))
+        return {
+            "label": f"repeat_{label}",
+            "expected": "two readings within the expected tolerance band",
+            "instruction": f"Repeat {label} with the same ground reference and record the meter range and probe points.",
+        }
+    if "voltage_measurement_has_resistance_unit" in reasons:
+        return {
+            "label": "repeat_voltage_measurement",
+            "expected": "volts, measured against the circuit reference node",
+            "instruction": "Repeat the node measurement in voltage mode before ranking component faults.",
+        }
+    if "op_amp_supply_rails_missing" in reasons:
+        return {
+            "label": "supply_rail_measurements",
+            "expected": "positive and negative op-amp supply rails with respect to circuit ground",
+            "instruction": "Add or measure the op-amp supply rails before interpreting the output fault.",
+        }
+    return {
+        "label": "document_expected_vs_observed_node",
+        "expected": "one measured node tied to a circuit reference",
+        "instruction": "Provide the topology, expected node value, observed node value, and measurement reference.",
+    }
+
+
 def build_catalog_diagnosis(
     session: dict[str, Any],
     netlist: dict[str, Any],
@@ -244,6 +271,27 @@ def build_catalog_diagnosis(
     topology = netlist.get("detected_topology") or session.get("experiment_type") or "unknown"
     if topology not in CATALOG:
         topology = "unknown"
+
+    uncertainty_reasons = comparison.get("uncertainty_reasons", [])
+    if uncertainty_reasons:
+        reasons_text = ", ".join(str(reason).replace("_", " ") for reason in uncertainty_reasons)
+        return {
+            "experiment_type": topology,
+            "expected_behavior": _expected_behavior(topology, netlist),
+            "observed_behavior": {
+                **_observed_behavior(waveform, comparison, measurements),
+                "uncertainty_reasons": uncertainty_reasons,
+            },
+            "likely_faults": [],
+            "next_measurement": _uncertainty_next_measurement([str(reason) for reason in uncertainty_reasons]),
+            "safety": {"risk_level": safety["risk_level"], "warnings": safety["warnings"]},
+            "student_explanation": (
+                "I do not have clean enough evidence to rank a component fault yet. "
+                f"Resolve this evidence issue first: {reasons_text}."
+            ),
+            "confidence": "low",
+            "session_status": "diagnosing",
+        }
 
     likely_faults = score(topology, comparison, measurements)
     top_fault = likely_faults[0] if likely_faults else None

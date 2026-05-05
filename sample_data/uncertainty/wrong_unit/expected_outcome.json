@@ -1,0 +1,11 @@
+{
+  "title": "Voltage reading entered as resistance",
+  "experiment_type": "voltage_divider",
+  "expected_confidence": "low",
+  "safety_refusal": false,
+  "missing": "Vout measurement in volts",
+  "expected_next_label": "repeat_voltage_measurement",
+  "measurements": [
+    {"label": "loaded_vout", "value": 120.0, "unit": "ohm", "mode": "ohms", "context": "Student entered meter reading while in resistance mode."}
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "title": "Conflicting repeated measurements",
+  "experiment_type": "op_amp_inverting",
+  "expected_confidence": "low",
+  "safety_refusal": false,
+  "missing": "repeatable Vout measurement with the same reference",
+  "expected_next_label": "repeat_vout",
+  "measurements": [
+    {"label": "Vout", "value": 5.0, "unit": "V", "mode": "DC", "context": "First reading."},
+    {"label": "Vout", "value": 50.0, "unit": "V", "mode": "DC", "context": "Second reading on the same node."}
+  ]
+}

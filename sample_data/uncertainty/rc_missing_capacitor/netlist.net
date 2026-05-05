@@ -1,0 +1,4 @@
+* Claimed RC low-pass, but the capacitor is absent
+Vin vin 0 DC 1
+R1 vin vout 10k
+.end

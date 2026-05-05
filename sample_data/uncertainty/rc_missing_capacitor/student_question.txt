@@ -1,0 +1,1 @@
+This is supposed to be my RC low-pass filter, but the exported netlist only contains the source and resistor. What should I check next?
