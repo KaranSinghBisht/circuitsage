@@ -5,6 +5,7 @@ import io
 import json
 import shutil
 import uuid
+from contextlib import asynccontextmanager
 from collections import Counter
 from collections import deque
 from datetime import datetime
@@ -41,7 +42,13 @@ from .tools.safety_check import safety_check
 from .tools.schematic_to_netlist import image_file_to_base64, recognize_schematic
 
 
-app = FastAPI(title="CircuitSage API", version="0.1.0")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    yield
+
+
+app = FastAPI(title="CircuitSage API", version="0.1.0", lifespan=lifespan)
 settings = get_settings()
 _hosted_rate_buckets: dict[str, deque[float]] = {}
 
@@ -98,11 +105,6 @@ async def hosted_demo_guard(request: Request, call_next):
         if _hosted_rate_limited(request):
             return JSONResponse({"detail": "Hosted demo rate limit exceeded. Try again in a minute."}, status_code=429)
     return await call_next(request)
-
-
-@app.on_event("startup")
-def startup() -> None:
-    init_db()
 
 
 def _get_session_or_404(session_id: str) -> dict:
