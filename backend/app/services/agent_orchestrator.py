@@ -9,6 +9,7 @@ from typing import Any
 
 from ..config import get_settings
 from ..database import db, row_to_dict, rows_to_dicts, utc_now
+from ..tools.datasheet import datasheet_prompt_context, lookup_datasheet
 from ..tools.measurement_compare import compare_expected_vs_observed
 from ..tools.parse_netlist import parse_netlist_file
 from ..tools.rag import retrieve
@@ -23,6 +24,9 @@ from .ollama_client import OllamaClient, parse_json_response
 from .prompt_templates import AGENTIC_SYSTEM_PROMPT, STRUCTURED_DIAGNOSIS_PROMPT
 from .tool_runner import AgentContext, run_tool
 
+
+DATASHEET_LOOKUP_LIMIT = 3
+DATASHEET_MODEL_KINDS = {"bjt", "diode", "mosfet", "subcircuit"}
 
 TOOL_SCHEMAS: list[dict[str, Any]] = [
     {
@@ -178,10 +182,16 @@ def _measurements_from_messages(messages: list[dict[str, str]]) -> list[dict[str
     return extracted
 
 
-def _tool_call(name: str, started: float, output: dict[str, Any], status: str = "ok") -> dict[str, Any]:
+def _tool_call(
+    name: str,
+    started: float,
+    output: dict[str, Any],
+    status: str = "ok",
+    input: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     return {
         "tool_name": name,
-        "input": {},
+        "input": input or {},
         "output": output,
         "status": status,
         "duration_ms": round((time.perf_counter() - started) * 1000),
@@ -214,6 +224,23 @@ def _tool_name_and_args(raw: dict[str, Any]) -> tuple[str, dict[str, Any]]:
     if not isinstance(arguments, dict):
         arguments = {}
     return name, arguments
+
+
+def _netlist_model_parts(netlist: dict[str, Any]) -> list[str]:
+    parts: list[str] = []
+    seen: set[str] = set()
+    for component in netlist.get("components", []):
+        if not isinstance(component, dict) or component.get("kind") not in DATASHEET_MODEL_KINDS:
+            continue
+        raw_part = component.get("model") or component.get("subckt")
+        if not raw_part:
+            continue
+        part = str(raw_part).strip()
+        key = part.upper()
+        if part and key not in seen:
+            seen.add(key)
+            parts.append(part)
+    return parts
 
 
 async def _agentic_loop(
@@ -334,6 +361,22 @@ async def diagnose_session(session_id: str, user_message: str | None = None, lan
             if recognized.get("detected_topology") != "unknown":
                 netlist = recognized.get("parsed", netlist)
 
+    datasheets: list[dict[str, Any]] = []
+    for part_number in _netlist_model_parts(netlist)[:DATASHEET_LOOKUP_LIMIT]:
+        started = time.perf_counter()
+        datasheet = lookup_datasheet(part_number)
+        datasheets.append(datasheet_prompt_context(datasheet))
+        status = "missing" if datasheet.get("error") else "ok"
+        tool_calls.append(
+            _tool_call(
+                "lookup_datasheet",
+                started,
+                datasheet,
+                status=status,
+                input={"part_number": part_number, "source": "netlist_model"},
+            )
+        )
+
     waveform: dict[str, Any] = {}
     waveform_artifact = _find_artifact(artifacts, "waveform_csv", "observed") or _find_artifact(artifacts, "waveform_csv")
     if waveform_artifact:
@@ -413,6 +456,7 @@ async def diagnose_session(session_id: str, user_message: str | None = None, lan
         "measurements": evidence_measurements,
         "recent_messages": recent_messages,
         "netlist": netlist,
+        "datasheets": datasheets,
         "waveform": waveform,
         "manual": manual,
         "vision": vision_results,

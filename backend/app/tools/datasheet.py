@@ -4,10 +4,15 @@ from pathlib import Path
 from typing import Any
 
 DATA_DIR = Path(__file__).resolve().parents[1] / "knowledge" / "datasheets"
+PROMPT_FIELDS = ("part_number", "summary", "pin_map", "abs_max", "typical_use", "common_faults", "source", "error")
+
+
+def normalize_part_number(part_number: str) -> str:
+    return part_number.upper().replace("-", "").replace("_", "")
 
 
 def _clean(part_number: str) -> str:
-    return part_number.upper().replace("-", "").replace("_", "")
+    return normalize_part_number(part_number)
 
 
 def _parse_sections(text: str) -> dict[str, str]:
@@ -49,3 +54,15 @@ def lookup_datasheet(part_number: str) -> dict[str, Any]:
 
 def list_datasheets() -> list[str]:
     return sorted(path.stem.upper() for path in DATA_DIR.glob("*.md"))
+
+
+def datasheet_prompt_context(result: dict[str, Any], max_field_chars: int = 700) -> dict[str, Any]:
+    compact: dict[str, Any] = {}
+    for field in PROMPT_FIELDS:
+        if field not in result:
+            continue
+        value = result[field]
+        if isinstance(value, str) and len(value) > max_field_chars:
+            value = value[:max_field_chars].rstrip() + "..."
+        compact[field] = value
+    return compact
