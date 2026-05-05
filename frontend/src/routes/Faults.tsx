@@ -33,7 +33,11 @@ export function Faults() {
 
   return (
     <main className="faults-shell">
-      <header className="topbar"><button className="ghost" onClick={() => setLocation("/")}>{t.app}</button><h1>{t.faultGallery}</h1></header>
+      <header className="topbar">
+        <button className="ghost" onClick={() => setLocation("/")}>{t.app}</button>
+        <h1>{t.faultGallery}</h1>
+        <button onClick={() => setLocation("/uncertainty")}>{t.uncertainty}</button>
+      </header>
       {Object.entries(groups).map(([topology, items]) => (
         <section className="fault-group" key={topology}>
           <h2>{topology.replaceAll("_", " ")}</h2>

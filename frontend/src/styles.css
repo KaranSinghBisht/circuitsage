@@ -174,6 +174,11 @@ label span { color: var(--muted); font-size: 12px; font-weight: 800; text-transf
 .fault-scope-thumb svg { width: 100%; height: 54px; }
 .fault-scope-thumb path:first-child { fill: none; stroke: var(--accent); stroke-width: 3; }
 .fault-scope-thumb path:last-child { fill: none; stroke: var(--amber); stroke-width: 3; stroke-dasharray: 5 5; }
+.uncertainty-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin-top: 18px; }
+.uncertainty-card { min-height: 330px; align-content: start; }
+.uncertainty-card h2 { font-size: 19px; line-height: 1.2; }
+.uncertainty-card div { display: grid; gap: 4px; border-top: 1px solid var(--line); padding-top: 8px; }
+.uncertainty-card strong { color: var(--accent); font-size: 12px; text-transform: uppercase; }
 .loading { min-height: 100vh; display: grid; place-items: center; color: var(--muted); gap: 10px; }
 .spin { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }

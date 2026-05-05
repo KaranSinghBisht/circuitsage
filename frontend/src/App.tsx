@@ -5,6 +5,7 @@ import { Bench } from "./routes/Bench";
 import { Companion } from "./routes/Companion";
 import { Educator } from "./routes/Educator";
 import { Faults } from "./routes/Faults";
+import { Uncertainty } from "./routes/Uncertainty";
 import { AccessibilityProvider } from "./hooks/useA11yPrefs";
 
 export default function App() {
@@ -17,6 +18,7 @@ export default function App() {
         <Route path="/companion" component={Companion} />
         <Route path="/educator" component={Educator} />
         <Route path="/faults" component={Faults} />
+        <Route path="/uncertainty" component={Uncertainty} />
         <Route><Redirect to="/" /></Route>
       </Switch>
     </AccessibilityProvider>
