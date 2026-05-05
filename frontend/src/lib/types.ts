@@ -34,6 +34,15 @@ export type Diagnosis = {
   gemma_status?: string;
 };
 
+export type ModelHealth = {
+  available: boolean;
+  model: string;
+  loaded: boolean;
+  models: string[];
+  hint?: string;
+  error?: string;
+};
+
 export type LabSession = {
   id: string;
   title: string;

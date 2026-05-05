@@ -1,4 +1,4 @@
-import type { CompanionAnalysis, LabSession, Measurement } from "./types";
+import type { CompanionAnalysis, LabSession, Measurement, ModelHealth } from "./types";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
 
@@ -15,6 +15,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   base: API_BASE,
+  modelHealth: () => request<ModelHealth>("/api/health/model"),
   sessions: () => request<LabSession[]>("/api/sessions"),
   session: (id: string) => request<LabSession>(`/api/sessions/${id}`),
   create: (title: string) =>

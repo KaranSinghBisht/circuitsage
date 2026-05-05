@@ -26,7 +26,7 @@ import {
   Stethoscope,
 } from "lucide-react";
 import { api } from "./lib/api";
-import type { Artifact, CompanionAnalysis, Diagnosis, LabSession, Measurement, ToolCall } from "./lib/types";
+import type { Artifact, CompanionAnalysis, Diagnosis, LabSession, Measurement, ModelHealth, ToolCall } from "./lib/types";
 import "./styles.css";
 
 function useRoute() {
@@ -115,6 +115,7 @@ function Home({ go }: { go: (path: string) => void }) {
 
 function Studio({ sessionId, go }: { sessionId: string; go: (path: string) => void }) {
   const [session, setSession] = useState<LabSession | null>(null);
+  const [modelHealth, setModelHealth] = useState<ModelHealth | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("My output is stuck near +12V. What should I check first?");
   const [qr, setQr] = useState<{ url: string; data_url: string } | null>(null);
@@ -125,6 +126,15 @@ function Studio({ sessionId, go }: { sessionId: string; go: (path: string) => vo
     const interval = window.setInterval(() => refresh().catch(() => undefined), 3500);
     return () => window.clearInterval(interval);
   }, [sessionId]);
+
+  useEffect(() => {
+    const refreshModel = () => api.modelHealth().then(setModelHealth).catch(() => {
+      setModelHealth({ available: false, model: "gemma3:4b", loaded: false, models: [], hint: "Run: ollama pull gemma3:4b" });
+    });
+    refreshModel();
+    const interval = window.setInterval(refreshModel, 10000);
+    return () => window.clearInterval(interval);
+  }, []);
 
   async function runDiagnosis() {
     setBusy(true);
@@ -171,6 +181,8 @@ function Studio({ sessionId, go }: { sessionId: string; go: (path: string) => vo
         </div>
       </header>
 
+      <GemmaStatusBanner health={modelHealth} />
+
       <section className="studio-grid">
         <aside className="panel artifacts-panel">
           <PanelTitle icon={<FileUp size={17} />} title="Artifacts" detail="manual, netlist, waveforms, bench images" />
@@ -205,6 +217,16 @@ function Studio({ sessionId, go }: { sessionId: string; go: (path: string) => vo
         </section>
       )}
     </main>
+  );
+}
+
+function GemmaStatusBanner({ health }: { health: ModelHealth | null }) {
+  if (!health || (health.available && health.loaded)) return null;
+  return (
+    <div className="gemma-banner">
+      <AlertTriangle size={17} />
+      <span>Gemma not loaded &mdash; running in deterministic mode. Run: ollama pull {health.model || "gemma3:4b"}</span>
+    </div>
   );
 }
 
@@ -579,11 +601,13 @@ function DiagnosisCard({ diagnosis }: { diagnosis?: Diagnosis }) {
     );
   }
   const topFault = diagnosis.likely_faults?.[0];
+  const status = diagnosis.gemma_status ?? "deterministic_fallback";
   return (
     <section className="diagnosis-card">
       <div className="card-head">
         <CheckCircle2 size={18} />
         <span>{diagnosis.confidence ?? "medium"} confidence</span>
+        <GemmaStatusChip status={status} />
       </div>
       <h2>{topFault?.fault ?? "Need more evidence"}</h2>
       <p>{diagnosis.student_explanation}</p>
@@ -597,6 +621,16 @@ function DiagnosisCard({ diagnosis }: { diagnosis?: Diagnosis }) {
       </ul>
     </section>
   );
+}
+
+function GemmaStatusChip({ status }: { status: string }) {
+  const tone = status.startsWith("ollama_gemma")
+    ? "green"
+    : status.startsWith("blocked_by_safety")
+      ? "red"
+      : "amber";
+  const label = status.startsWith("deterministic_fallback") ? "deterministic_fallback" : status;
+  return <span className={`gemma-chip ${tone}`}>{label}</span>;
 }
 
 function ToolTimeline({ calls }: { calls: ToolCall[] }) {

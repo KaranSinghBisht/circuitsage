@@ -45,6 +45,8 @@ h1, h2, h3, p { margin: 0; }
 .top-actions { display: flex; align-items: center; gap: 8px; }
 .ghost { background: transparent; border-color: transparent; color: var(--accent); font-weight: 800; }
 .icon-button { width: 42px; padding: 0; }
+.gemma-banner { margin-top: 14px; border: 1px solid rgba(255,191,87,.45); background: rgba(255,191,87,.12); color: #ffe0ac; min-height: 42px; padding: 10px 12px; display: flex; align-items: center; gap: 9px; font-weight: 700; }
+.gemma-banner svg { flex: 0 0 auto; }
 .studio-grid { display: grid; grid-template-columns: 310px minmax(420px, 1fr) 380px; gap: 14px; padding-top: 14px; align-items: start; }
 .panel { background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01)), var(--panel); border: 1px solid var(--line); padding: 16px; }
 .panel-title { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 14px; }
@@ -72,7 +74,11 @@ h1, h2, h3, p { margin: 0; }
 
 .diagnosis-card { border: 1px solid var(--line); background: #111714; padding: 16px; display: grid; gap: 12px; margin-top: 14px; }
 .diagnosis-card.empty { color: var(--muted); display: flex; align-items: center; }
-.card-head { display: flex; align-items: center; gap: 8px; color: var(--accent); text-transform: uppercase; font-size: 12px; font-weight: 800; }
+.card-head { display: flex; align-items: center; gap: 8px; color: var(--accent); text-transform: uppercase; font-size: 12px; font-weight: 800; flex-wrap: wrap; }
+.gemma-chip { margin-left: auto; border: 1px solid currentColor; padding: 4px 7px; font-size: 11px; line-height: 1; max-width: 100%; overflow-wrap: anywhere; }
+.gemma-chip.green { color: var(--accent); background: rgba(103,242,169,.08); }
+.gemma-chip.amber { color: var(--amber); background: rgba(255,191,87,.08); }
+.gemma-chip.red { color: var(--red); background: rgba(255,95,86,.08); }
 .diagnosis-card h2 { font-family: Georgia, "Times New Roman", serif; font-size: 24px; line-height: 1.05; }
 .diagnosis-card p { color: #d7e3d8; line-height: 1.45; }
 .next-measure { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 12px 0; display: grid; gap: 5px; }
