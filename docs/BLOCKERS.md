@@ -28,4 +28,4 @@
 ## K10
 
 - Hosted packaging is present (`Dockerfile`, `fly.toml`, `docs/DEPLOYMENT.md`, `scripts/hosted_start.sh`) and hosted-mode guard tests pass locally. Actual Fly deployment is a USER ACTION requiring a Fly account, deploy credentials, and volume creation.
-- A local Docker image build was attempted on 2026-05-05, but Docker Desktop/daemon was not running (`Cannot connect to the Docker daemon at unix:///Users/kryptos/.docker/run/docker.sock`). Re-run `docker build -t circuitsage-hosted:local .` once the daemon is available.
+- A local Docker image build was attempted on 2026-05-05, but Docker Desktop/daemon was not running (`Cannot connect to the Docker daemon at unix:///Users/kryptos/.docker/run/docker.sock`; the default context also failed at `unix:///var/run/docker.sock`). Re-run `docker build -t circuitsage-hosted:local .` once the daemon is available.
