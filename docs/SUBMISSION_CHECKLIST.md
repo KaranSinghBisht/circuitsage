@@ -30,4 +30,4 @@ Source: `docs/WINNING_FORWARD_PLAN.md` Section 9.
 | [x] | Dataset validation passes with balanced topology distribution and prompt de-duplication. |
 | [x] | Demo smoke script passes across topology seeds, educator overview, and PDF report. |
 
-Last verified at HEAD: 2026-05-06 after `f8e062a`; `make test`, dataset validation, `make demo-seed`, `bash scripts/demo_smoke.sh`, eval harness command with Ollama unavailable, `/api/routes` count 36, and `git log --oneline | head -40` completed.
+Last verified at HEAD: 2026-05-06; `make test`, dataset validation, `make demo-seed`, `bash scripts/demo_smoke.sh`, eval harness command with Ollama unavailable, `/api/routes` count 36, and `git log --oneline | head -40` completed. Post-verification changes are documentation-only checklist/blocker updates.
