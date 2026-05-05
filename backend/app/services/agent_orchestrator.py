@@ -14,6 +14,7 @@ from ..tools.parse_netlist import parse_netlist_file
 from ..tools.rag import retrieve
 from ..tools.report_builder import generate_report
 from ..tools.safety_check import safety_check
+from ..tools.schematic_to_netlist import image_file_to_base64, recognize_schematic
 from ..tools.vision import describe_artifact
 from ..tools.waveform_analysis import analyze_waveform_csv
 from .fault_catalog import build_catalog_diagnosis
@@ -304,6 +305,25 @@ async def diagnose_session(session_id: str, user_message: str | None = None, lan
         started = time.perf_counter()
         netlist = parse_netlist_file(_artifact_path(netlist_artifact))
         tool_calls.append(_tool_call("parse_netlist", started, netlist))
+    else:
+        schematic_artifact = next(
+            (
+                artifact
+                for artifact in reversed(artifacts)
+                if artifact["kind"] in {"image", "breadboard"} and "schematic" in artifact.get("filename", "").lower()
+            ),
+            None,
+        )
+        if schematic_artifact:
+            started = time.perf_counter()
+            recognized = await recognize_schematic(
+                image_file_to_base64(_artifact_path(schematic_artifact)),
+                hint=schematic_artifact.get("filename", ""),
+            )
+            status = "ok" if recognized.get("detected_topology") != "unknown" else "fallback"
+            tool_calls.append(_tool_call("schematic_to_netlist", started, recognized, status=status))
+            if recognized.get("detected_topology") != "unknown":
+                netlist = recognized.get("parsed", netlist)
 
     waveform: dict[str, Any] = {}
     waveform_artifact = _find_artifact(artifacts, "waveform_csv", "observed") or _find_artifact(artifacts, "waveform_csv")

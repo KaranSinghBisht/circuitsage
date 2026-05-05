@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Annotated
 
 import qrcode
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import Body, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
@@ -26,6 +26,7 @@ from .schemas import (
 from .services.agent_orchestrator import build_report, diagnose_session
 from .services.ollama_client import OllamaClient, parse_json_response
 from .tools.safety_check import safety_check
+from .tools.schematic_to_netlist import image_file_to_base64, recognize_schematic
 
 
 app = FastAPI(title="CircuitSage API", version="0.1.0")
@@ -51,6 +52,14 @@ def _get_session_or_404(session_id: str) -> dict:
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
     return session
+
+
+def _get_artifact_or_404(artifact_id: str) -> dict:
+    with db() as conn:
+        artifact = row_to_dict(conn.execute("SELECT * FROM artifacts WHERE id = ?", (artifact_id,)).fetchone())
+    if not artifact or not Path(artifact["path"]).exists():
+        raise HTTPException(status_code=404, detail="Artifact not found")
+    return artifact
 
 
 def _artifact_kind(filename: str, provided: str | None = None) -> str:
@@ -213,6 +222,22 @@ def health() -> dict:
 @app.get("/api/health/model")
 async def model_health() -> dict:
     return await OllamaClient(settings.ollama_base_url, settings.ollama_model).health()
+
+
+@app.post("/api/tools/schematic-to-netlist")
+async def schematic_to_netlist_endpoint(
+    file: UploadFile | None = File(default=None),
+    artifact_id: str | None = Form(default=None),
+) -> dict:
+    if artifact_id:
+        artifact = _get_artifact_or_404(artifact_id)
+        image_b64 = image_file_to_base64(artifact["path"])
+        return await recognize_schematic(image_b64, hint=artifact.get("filename", ""))
+    if file:
+        payload = await file.read()
+        image_b64 = base64.b64encode(payload).decode("ascii")
+        return await recognize_schematic(image_b64, hint=Path(file.filename or "").name)
+    raise HTTPException(status_code=400, detail="file or artifact_id required")
 
 
 @app.post("/api/companion/analyze")
@@ -564,6 +589,30 @@ async def upload_artifact(
     return row_to_dict(row)
 
 
+@app.post("/api/sessions/{session_id}/artifacts/netlist")
+def create_netlist_artifact(session_id: str, payload: dict = Body(...)) -> dict:
+    _get_session_or_404(session_id)
+    netlist = str(payload.get("netlist", "")).strip()
+    if not netlist:
+        raise HTTPException(status_code=400, detail="netlist required")
+    artifact_id = str(uuid.uuid4())
+    safe_dir = settings.upload_dir / session_id
+    safe_dir.mkdir(parents=True, exist_ok=True)
+    dest = safe_dir / f"{artifact_id}_recognized.net"
+    dest.write_text(netlist)
+    now = utc_now()
+    with db() as conn:
+        conn.execute(
+            """
+            INSERT INTO artifacts (id, session_id, kind, filename, path, text_excerpt, metadata_json, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (artifact_id, session_id, "netlist", "recognized.net", str(dest), netlist[:1200], json.dumps({"source": "schematic_to_netlist"}), now),
+        )
+        row = conn.execute("SELECT * FROM artifacts WHERE id = ?", (artifact_id,)).fetchone()
+    return row_to_dict(row)
+
+
 @app.get("/api/sessions/{session_id}/artifacts")
 def list_artifacts(session_id: str) -> list[dict]:
     _get_session_or_404(session_id)
@@ -574,10 +623,7 @@ def list_artifacts(session_id: str) -> list[dict]:
 
 @app.get("/api/artifacts/{artifact_id}/download")
 def download_artifact(artifact_id: str) -> FileResponse:
-    with db() as conn:
-        artifact = row_to_dict(conn.execute("SELECT * FROM artifacts WHERE id = ?", (artifact_id,)).fetchone())
-    if not artifact or not Path(artifact["path"]).exists():
-        raise HTTPException(status_code=404, detail="Artifact not found")
+    artifact = _get_artifact_or_404(artifact_id)
     return FileResponse(artifact["path"], filename=artifact["filename"])
 
 

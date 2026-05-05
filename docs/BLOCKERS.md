@@ -20,3 +20,7 @@
 ## Phase 5
 
 - iOS voice input/output is wired through `expo-speech-recognition@3.1.3` and `expo-speech@55.0.13`, but physical microphone/TTS acceptance requires a development client on an iPhone. If system STT fails, the app persists the recording as a session `audio` artifact when a LAN session is selected; a bundled Whisper fallback is not present in this repo.
+
+## K1
+
+- Schematic-to-netlist is wired through the Gemma vision endpoint and validates generated SPICE before use. The live acceptance with a hand-drawn schematic photo requires Ollama running with the configured vision model and a real photo; when vision is unavailable, the endpoint returns low confidence with missing evidence instead of fabricating components.

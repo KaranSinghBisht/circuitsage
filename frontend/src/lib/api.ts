@@ -32,6 +32,24 @@ export const api = {
     body.append("kind", kind);
     return request(`/api/sessions/${sessionId}/artifacts`, { method: "POST", body });
   },
+  createNetlistArtifact: (sessionId: string, netlist: string) =>
+    request(`/api/sessions/${sessionId}/artifacts/netlist`, {
+      method: "POST",
+      body: JSON.stringify({ netlist }),
+    }),
+  schematicToNetlist: (artifactId: string) => {
+    const body = new FormData();
+    body.append("artifact_id", artifactId);
+    return request<{
+      netlist: string;
+      confidence: number;
+      missing: string[];
+      needed: string[];
+      detected_topology: string;
+      mode: string;
+      error?: string;
+    }>("/api/tools/schematic-to-netlist", { method: "POST", body });
+  },
   addMeasurement: (sessionId: string, payload: Omit<Measurement, "id">) =>
     request<Measurement>(`/api/sessions/${sessionId}/measurements`, {
       method: "POST",

@@ -28,6 +28,7 @@ export function Studio({ sessionId }: { sessionId: string }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("My output is stuck near +12V. What should I check first?");
   const [qr, setQr] = useState<{ url: string; data_url: string } | null>(null);
+  const [recognizedNetlist, setRecognizedNetlist] = useState<{ netlist: string; confidence: number; missing: string[]; detected_topology: string } | null>(null);
 
   async function runDiagnosis() {
     setBusy(true);
@@ -53,6 +54,18 @@ export function Studio({ sessionId }: { sessionId: string }) {
     } finally {
       setBusy(false);
     }
+  }
+
+  async function recognize(artifact: Artifact) {
+    const result = await api.schematicToNetlist(artifact.id);
+    setRecognizedNetlist(result);
+  }
+
+  async function acceptRecognized() {
+    if (!recognizedNetlist?.netlist) return;
+    await api.createNetlistArtifact(sessionId, recognizedNetlist.netlist);
+    setRecognizedNetlist(null);
+    await refresh();
   }
 
   if (!session) return <LoadingScreen />;
@@ -83,7 +96,14 @@ export function Studio({ sessionId }: { sessionId: string }) {
         <aside className="panel artifacts-panel">
           <PanelTitle icon={<FileUp size={17} />} title="Artifacts" detail="manual, netlist, waveforms, bench images" />
           <UploadPanel sessionId={sessionId} onDone={refresh} />
-          <ArtifactList artifacts={session.artifacts} />
+          <ArtifactList artifacts={session.artifacts} onRecognize={recognize} />
+          {recognizedNetlist && (
+            <div className="schematic-preview">
+              <span>Recognized netlist · {recognizedNetlist.detected_topology} · {Math.round(recognizedNetlist.confidence * 100)}%</span>
+              <pre>{recognizedNetlist.netlist || `Need: ${recognizedNetlist.missing.join(", ")}`}</pre>
+              <button onClick={acceptRecognized} disabled={!recognizedNetlist.netlist}>Accept Netlist</button>
+            </div>
+          )}
           <SchematicPreview artifacts={session.artifacts} />
         </aside>
 
@@ -119,14 +139,19 @@ export function Studio({ sessionId }: { sessionId: string }) {
   );
 }
 
-function ArtifactList({ artifacts }: { artifacts: Artifact[] }) {
+function ArtifactList({ artifacts, onRecognize }: { artifacts: Artifact[]; onRecognize: (artifact: Artifact) => void }) {
   return (
     <div className="artifact-list">
       {artifacts.map((artifact) => (
-        <a href={api.artifactUrl(artifact.id)} key={artifact.id} target="_blank" rel="noreferrer">
-          <span>{artifact.kind}</span>
-          <strong>{artifact.filename}</strong>
-        </a>
+        <div key={artifact.id}>
+          <a href={api.artifactUrl(artifact.id)} target="_blank" rel="noreferrer">
+            <span>{artifact.kind}</span>
+            <strong>{artifact.filename}</strong>
+          </a>
+          {["image", "breadboard"].includes(artifact.kind) && (
+            <button onClick={() => onRecognize(artifact)}>Recognize from photo</button>
+          )}
+        </div>
       ))}
     </div>
   );
