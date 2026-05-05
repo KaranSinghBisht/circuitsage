@@ -41,3 +41,7 @@
 ## C1 eval harness run
 
 - `backend/.venv/bin/python train/eval/harness.py --model gemma3:4b` was attempted on 2026-05-06, but Ollama was not reachable at `http://localhost:11434` (`httpx.ConnectError: [Errno 61] Connection refused`). The 200-row eval set exists and both `python3 -c "import train.eval.harness"` and `backend/.venv/bin/python -c "import train.eval.harness"` pass. Re-run the harness after starting Ollama and pulling `gemma3:4b`.
+
+## F4 live Gemma status color verification
+
+- The chat status chip is implemented and maps `ollama_gemma_agentic` to green `agentic`, `ollama_gemma_single_shot` to yellow `single_shot`, deterministic fallback to blue `deterministic`, and safety refusal to red `safety_refusal`. The frontend build passes. The Ollama-up visual flip could not be exercised on 2026-05-06 because Ollama is not reachable at `http://localhost:11434`; only the deterministic/down path was verified locally.
