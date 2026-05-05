@@ -6,6 +6,8 @@ __pycache__/
 .pytest_cache/
 backend/.venv/
 backend/app/data/*.db
+backend/app/data/vectorstore.json
+backend/app/data/chroma/
 backend/app/uploads/
 
 # Node
