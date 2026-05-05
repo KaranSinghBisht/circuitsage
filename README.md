@@ -43,6 +43,15 @@ sample_data/op_amp_lab
 
 Gemma is used through Ollama for natural-language diagnosis and explanation. Deterministic tools handle netlist parsing, waveform analysis, safety checks, manual retrieval, expected-vs-observed comparison, and report generation. If Ollama is unavailable, the deterministic fallback still runs the full demo.
 
+## Quickstart
+
+```bash
+make install
+make demo
+```
+
+`make demo` starts the FastAPI backend, opens the web app, and runs the Vite dev server.
+
 ## Local Setup
 
 Backend:
