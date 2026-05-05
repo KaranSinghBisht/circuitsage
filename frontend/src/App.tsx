@@ -6,6 +6,7 @@ import { Companion } from "./routes/Companion";
 import { Educator } from "./routes/Educator";
 import { Faults } from "./routes/Faults";
 import { Uncertainty } from "./routes/Uncertainty";
+import { PressKit } from "./routes/PressKit";
 import { AccessibilityProvider } from "./hooks/useA11yPrefs";
 import { ThemeToggle } from "./components/ThemeToggle";
 
@@ -21,6 +22,7 @@ export default function App() {
         <Route path="/educator" component={Educator} />
         <Route path="/faults" component={Faults} />
         <Route path="/uncertainty" component={Uncertainty} />
+        <Route path="/press" component={PressKit} />
         <Route><Redirect to="/" /></Route>
       </Switch>
     </AccessibilityProvider>
