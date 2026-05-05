@@ -11,6 +11,7 @@ class LabSessionCreate(BaseModel):
     title: str
     student_level: str = "2nd/3rd year EEE"
     notes: str = ""
+    experiment_type: str = "op_amp_inverting"
 
 
 class LabSessionUpdate(BaseModel):

@@ -308,7 +308,7 @@ def create_session(payload: LabSessionCreate) -> dict:
                 session_id,
                 payload.title,
                 payload.student_level,
-                "op_amp_inverting",
+                payload.experiment_type,
                 "pre_lab",
                 now,
                 now,
@@ -370,38 +370,141 @@ def delete_session(session_id: str) -> dict:
 
 @app.post("/api/sessions/seed/op-amp")
 async def seed_op_amp_demo() -> dict:
+    return await _seed_demo(
+        topology="op_amp_inverting",
+        title="Op-Amp Inverting Amplifier: Why is my output stuck at +12V?",
+        notes="Seeded hackathon demo: simulation is correct, bench output is saturated near +12 V.",
+        sample_dir=settings.sample_data_dir,
+        samples=[
+            ("manual", "lab_manual_excerpt.md"),
+            ("netlist", "opamp_inverting.net"),
+            ("waveform_csv", "expected_waveform.csv"),
+            ("waveform_csv", "observed_saturated_waveform.csv"),
+            ("note", "student_question.txt"),
+            ("image", "scope_saturated_placeholder.png"),
+            ("image", "breadboard_placeholder.png"),
+            ("image", "fixed_scope_placeholder.png"),
+        ],
+        measurements=[
+            MeasurementCreate(label="Vout", value=11.8, unit="V", mode="DC", context="Output stuck near positive rail"),
+            MeasurementCreate(label="V+", value=12.1, unit="V", mode="DC", context="Positive supply rail"),
+            MeasurementCreate(label="V-", value=-12.0, unit="V", mode="DC", context="Negative supply rail"),
+        ],
+        question="My output is stuck near +12V. What should I check first?",
+    )
+
+
+async def _seed_demo(
+    topology: str,
+    title: str,
+    notes: str,
+    sample_dir: Path,
+    samples: list[tuple[str, str]],
+    measurements: list[MeasurementCreate],
+    question: str,
+) -> dict:
     created = create_session(
         LabSessionCreate(
-            title="Op-Amp Inverting Amplifier: Why is my output stuck at +12V?",
+            title=title,
             student_level="2nd/3rd year EEE",
-            notes="Seeded hackathon demo: simulation is correct, bench output is saturated near +12 V.",
+            notes=notes,
+            experiment_type=topology,
         )
     )
     session_id = created["id"]
-    samples = [
-        ("manual", "lab_manual_excerpt.md"),
-        ("netlist", "opamp_inverting.net"),
-        ("waveform_csv", "expected_waveform.csv"),
-        ("waveform_csv", "observed_saturated_waveform.csv"),
-        ("note", "student_question.txt"),
-        ("image", "scope_saturated_placeholder.png"),
-        ("image", "breadboard_placeholder.png"),
-        ("image", "fixed_scope_placeholder.png"),
-    ]
     for kind, filename in samples:
-        path = settings.sample_data_dir / filename
+        path = sample_dir / filename
         if path.exists():
             _insert_artifact(session_id, kind, path, filename)
 
-    seed_measurements = [
-        MeasurementCreate(label="Vout", value=11.8, unit="V", mode="DC", context="Output stuck near positive rail"),
-        MeasurementCreate(label="V+", value=12.1, unit="V", mode="DC", context="Positive supply rail"),
-        MeasurementCreate(label="V-", value=-12.0, unit="V", mode="DC", context="Negative supply rail"),
-    ]
-    for measurement in seed_measurements:
+    for measurement in measurements:
         add_measurement(session_id, measurement)
-    diagnosis = await diagnose_session(session_id, "My output is stuck near +12V. What should I check first?")
+    diagnosis = await diagnose_session(session_id, question)
     return {**get_session(session_id), "seed_diagnosis": diagnosis["diagnosis"]}
+
+
+@app.post("/api/sessions/seed/rc-lowpass")
+async def seed_rc_lowpass_demo() -> dict:
+    return await _seed_demo(
+        topology="rc_lowpass",
+        title="RC Low-Pass: Why is 100 Hz already attenuated?",
+        notes="Expected cutoff is about 159 Hz, but the observed output is too small at 100 Hz.",
+        sample_dir=settings.sample_data_dir.parent / "rc_lowpass",
+        samples=[
+            ("manual", "lab_manual_excerpt.md"),
+            ("netlist", "netlist.net"),
+            ("waveform_csv", "expected_waveform.csv"),
+            ("waveform_csv", "observed_attenuated.csv"),
+            ("note", "student_question.txt"),
+        ],
+        measurements=[
+            MeasurementCreate(label="output_gain_at_test_frequency", value=0.42, unit="ratio", mode="AC", context="100 Hz output/input gain"),
+        ],
+        question="The low-pass output is attenuated at 100 Hz. What should I check?",
+    )
+
+
+@app.post("/api/sessions/seed/voltage-divider")
+async def seed_voltage_divider_demo() -> dict:
+    return await _seed_demo(
+        topology="voltage_divider",
+        title="Voltage Divider: Why is the loaded output 1.8V?",
+        notes="No-load expectation is 6 V from a 10k/10k divider on 12 V.",
+        sample_dir=settings.sample_data_dir.parent / "voltage_divider",
+        samples=[
+            ("manual", "lab_manual_excerpt.md"),
+            ("netlist", "netlist.net"),
+            ("waveform_csv", "expected_waveform.csv"),
+            ("waveform_csv", "observed_loaded.csv"),
+            ("note", "student_question.txt"),
+        ],
+        measurements=[
+            MeasurementCreate(label="loaded_vout", value=1.8, unit="V", mode="DC", context="Divider output with load connected"),
+        ],
+        question="My loaded divider output is 1.8 V instead of 6 V. What should I check?",
+    )
+
+
+@app.post("/api/sessions/seed/bjt-common-emitter")
+async def seed_bjt_common_emitter_demo() -> dict:
+    return await _seed_demo(
+        topology="bjt_common_emitter",
+        title="BJT Common Emitter: Why is the collector at 0.2V?",
+        notes="The collector should bias near mid-supply, but it is near saturation.",
+        sample_dir=settings.sample_data_dir.parent / "bjt_common_emitter",
+        samples=[
+            ("manual", "lab_manual_excerpt.md"),
+            ("netlist", "netlist.net"),
+            ("waveform_csv", "expected_waveform.csv"),
+            ("waveform_csv", "observed_saturated.csv"),
+            ("note", "student_question.txt"),
+        ],
+        measurements=[
+            MeasurementCreate(label="collector_voltage", value=0.2, unit="V", mode="DC", context="Collector DC operating point"),
+        ],
+        question="The collector is at 0.2 V and the amplifier is clipped. What should I check?",
+    )
+
+
+@app.post("/api/sessions/seed/op-amp-noninverting")
+async def seed_op_amp_noninverting_demo() -> dict:
+    return await _seed_demo(
+        topology="op_amp_noninverting",
+        title="Op-Amp Non-Inverting: Why is the gain only 1?",
+        notes="Expected gain is 11, but observed gain is unity.",
+        sample_dir=settings.sample_data_dir.parent / "op_amp_noninverting",
+        samples=[
+            ("manual", "lab_manual_excerpt.md"),
+            ("netlist", "netlist.net"),
+            ("waveform_csv", "expected_waveform.csv"),
+            ("waveform_csv", "observed_unity_gain.csv"),
+            ("note", "student_question.txt"),
+        ],
+        measurements=[
+            MeasurementCreate(label="closed_loop_gain", value=1.0, unit="ratio", mode="AC", context="Observed Vout/Vin"),
+        ],
+        question="My non-inverting op-amp gain is only 1 instead of 11. What should I check?",
+    )
 
 
 @app.post("/api/sessions/{session_id}/artifacts")

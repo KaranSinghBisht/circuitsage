@@ -23,7 +23,7 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ title, student_level: "2nd/3rd year EEE", notes: "" }),
     }),
-  seedDemo: () => request<LabSession>("/api/sessions/seed/op-amp", { method: "POST" }),
+  seedDemo: (slug = "op-amp") => request<LabSession>(`/api/sessions/seed/${slug}`, { method: "POST" }),
   upload: (sessionId: string, file: File, kind: string) => {
     const body = new FormData();
     body.append("file", file);

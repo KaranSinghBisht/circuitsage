@@ -29,6 +29,14 @@ import { api } from "./lib/api";
 import type { Artifact, CompanionAnalysis, Diagnosis, LabSession, Measurement, ModelHealth, ToolCall } from "./lib/types";
 import "./styles.css";
 
+const DEMO_TILES = [
+  { slug: "op-amp", title: "Inverting Op-Amp", detail: "saturated output, floating reference input" },
+  { slug: "rc-lowpass", title: "RC Low-Pass", detail: "unexpected attenuation below cutoff" },
+  { slug: "voltage-divider", title: "Voltage Divider", detail: "loaded output pulled below expectation" },
+  { slug: "bjt-common-emitter", title: "BJT Common Emitter", detail: "collector biased into saturation" },
+  { slug: "op-amp-noninverting", title: "Non-Inverting Op-Amp", detail: "unity gain instead of configured gain" },
+];
+
 function useRoute() {
   const [path, setPath] = useState(window.location.pathname + window.location.search);
   useEffect(() => {
@@ -53,10 +61,10 @@ function Home({ go }: { go: (path: string) => void }) {
     load().catch(console.error);
   }, []);
 
-  async function seed() {
+  async function seed(slug = "op-amp") {
     setLoading(true);
     try {
-      const session = await api.seedDemo();
+      const session = await api.seedDemo(slug);
       go(`/studio/${session.id}`);
     } finally {
       setLoading(false);
@@ -89,7 +97,7 @@ function Home({ go }: { go: (path: string) => void }) {
             <Bot size={18} />
             Open Companion
           </button>
-          <button className="primary" onClick={seed} disabled={loading}>
+          <button className="primary" onClick={() => seed("op-amp")} disabled={loading}>
             {loading ? <Loader2 className="spin" size={18} /> : <Sparkles size={18} />}
             Load Op-Amp Demo
           </button>
@@ -98,6 +106,16 @@ function Home({ go }: { go: (path: string) => void }) {
             <button onClick={create} disabled={loading}><Plus size={18} /> New</button>
           </div>
         </div>
+      </section>
+
+      <section className="demo-grid">
+        {DEMO_TILES.map((demo) => (
+          <button className="demo-tile" key={demo.slug} onClick={() => seed(demo.slug)} disabled={loading}>
+            <span>Demo</span>
+            <strong>{demo.title}</strong>
+            <small>{demo.detail}</small>
+          </button>
+        ))}
       </section>
 
       <section className="session-grid">

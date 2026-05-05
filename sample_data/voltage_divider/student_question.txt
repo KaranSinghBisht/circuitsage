@@ -1,0 +1,1 @@
+My 10k/10k divider should make 6 V, but the loaded output is around 1.8 V. What is happening?

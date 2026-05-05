@@ -1,0 +1,1 @@
+My common-emitter amplifier collector is sitting near 0.2 V and the signal is clipped. What should I check first?

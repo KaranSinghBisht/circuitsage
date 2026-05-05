@@ -1,0 +1,1 @@
+My RC low-pass output is already heavily attenuated at 100 Hz even though the calculated cutoff is about 159 Hz. What should I check?
