@@ -43,6 +43,10 @@ make lint         # ruff when installed, frontend/iOS TypeScript checks
 make clean        # remove local env/build artifacts
 ```
 
+## API Surface
+
+The route map is available at [GET /api/routes](http://localhost:8000/api/routes). It returns every public API endpoint with method, path, and a one-line description.
+
 ## Demo Story
 
 The main demo is an inverting op-amp amplifier. The simulator expects gain -4.7, but the bench output is stuck near +12 V. CircuitSage parses the netlist, analyzes the observed waveform, checks safety, retrieves the relevant manual context, asks for `V_noninv`, and identifies the floating reference input after the measurement is entered.

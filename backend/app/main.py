@@ -17,6 +17,7 @@ import qrcode
 from fastapi import Body, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response
+from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
 
 from .config import get_settings
@@ -283,6 +284,25 @@ def health() -> dict:
 @app.get("/api/health/model")
 async def model_health() -> dict:
     return await OllamaClient(settings.ollama_base_url, settings.ollama_model).health()
+
+
+@app.get("/api/routes")
+def api_routes() -> list[dict]:
+    routes: list[dict] = []
+    for route in app.routes:
+        if not isinstance(route, APIRoute) or not route.path.startswith("/api/"):
+            continue
+        methods = sorted(method for method in route.methods if method not in {"HEAD", "OPTIONS"})
+        description = route.summary or route.name.replace("_", " ")
+        for method in methods:
+            routes.append(
+                {
+                    "method": method,
+                    "path": route.path,
+                    "description": " ".join(description.split()),
+                }
+            )
+    return sorted(routes, key=lambda item: (item["path"], item["method"]))
 
 
 @app.post("/api/tools/schematic-to-netlist")
