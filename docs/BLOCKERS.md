@@ -29,3 +29,7 @@
 
 - Hosted packaging is present (`Dockerfile`, `fly.toml`, `docs/DEPLOYMENT.md`, `scripts/hosted_start.sh`) and hosted-mode guard tests pass locally. Actual Fly deployment is a USER ACTION requiring a Fly account, deploy credentials, and volume creation.
 - A local Docker image build was attempted on 2026-05-05, but Docker Desktop/daemon was not running (`Cannot connect to the Docker daemon at unix:///Users/kryptos/.docker/run/docker.sock`; the default context also failed at `unix:///var/run/docker.sock`). Re-run `docker build -t circuitsage-hosted:local .` once the daemon is available.
+
+## Phase 3.5 follow-up pre-flight
+
+- Pre-flight for `docs/PHASE_3_5_FOLLOWUP_AND_HARDENING.md` stopped on 2026-05-06 because `git status` was not clean before Group A. Dirty entries at the gate were `.omc/project-memory.json`, `.omc/state/agent-replay-d79f5ca6-fc55-4d26-867c-7d5bc110f091.jsonl`, `.omc/state/idle-notif-cooldown.json`, `.omc/state/last-tool-error.json`, `.omc/state/mission-state.json`, `.omc/state/subagent-tracking.json`, and untracked `docs/PHASE_3_5_FOLLOWUP_AND_HARDENING.md`. Per Section 0, Group A must not start until the worktree is clean or the user explicitly chooses how to handle these pre-existing files.

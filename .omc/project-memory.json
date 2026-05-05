@@ -181,6 +181,12 @@
       "type": "file"
     },
     {
+      "path": "backend/app/tools/waveform_analysis.py",
+      "accessCount": 2,
+      "lastAccessed": 1778004781032,
+      "type": "file"
+    },
+    {
       "path": "README.md",
       "accessCount": 1,
       "lastAccessed": 1777982925366,
@@ -220,12 +226,6 @@
       "path": "docs/KAGGLE_WRITEUP_DRAFT.md",
       "accessCount": 1,
       "lastAccessed": 1777982934731,
-      "type": "file"
-    },
-    {
-      "path": "backend/app/tools/waveform_analysis.py",
-      "accessCount": 1,
-      "lastAccessed": 1777982943272,
       "type": "file"
     },
     {
@@ -418,6 +418,30 @@
       "path": "docs/WINNING_FORWARD_PLAN.md",
       "accessCount": 1,
       "lastAccessed": 1777998414221,
+      "type": "file"
+    },
+    {
+      "path": "backend/app/tools/schematic_to_netlist.py",
+      "accessCount": 1,
+      "lastAccessed": 1778004772842,
+      "type": "file"
+    },
+    {
+      "path": "backend/tests/test_agent_loop.py",
+      "accessCount": 1,
+      "lastAccessed": 1778004817267,
+      "type": "file"
+    },
+    {
+      "path": "backend/tests/test_schematic_to_netlist.py",
+      "accessCount": 1,
+      "lastAccessed": 1778004817642,
+      "type": "file"
+    },
+    {
+      "path": "backend/tests/test_report_pdf.py",
+      "accessCount": 1,
+      "lastAccessed": 1778004818417,
       "type": "file"
     }
   ],
