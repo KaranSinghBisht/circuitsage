@@ -87,6 +87,7 @@ export const api = {
   }>>("/api/faults"),
   educatorOverview: () => request<{
     total_sessions: number;
+    average_time_to_resolution_s: number | null;
     safety_refusals: number;
     unfinished_sessions: number;
     common_faults: Array<{ topology: string; fault: string; count: number }>;

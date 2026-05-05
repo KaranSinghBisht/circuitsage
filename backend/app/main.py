@@ -5,6 +5,8 @@ import io
 import json
 import shutil
 import uuid
+from collections import Counter
+from datetime import datetime
 from pathlib import Path
 from typing import Annotated
 
@@ -480,6 +482,50 @@ def list_fault_catalog() -> list[dict]:
 @app.get("/api/datasheets/{partnumber}")
 def get_datasheet(partnumber: str) -> dict:
     return lookup_datasheet(partnumber)
+
+
+@app.get("/api/educator/overview")
+def educator_overview() -> dict:
+    with db() as conn:
+        sessions = rows_to_dicts(conn.execute("SELECT * FROM lab_sessions").fetchall())
+        diagnoses = rows_to_dicts(conn.execute("SELECT * FROM diagnoses").fetchall())
+    common: Counter[tuple[str, str]] = Counter()
+    stalled: Counter[str] = Counter()
+    safety_refusals = 0
+    resolved_durations: list[float] = []
+    session_by_id = {session["id"]: session for session in sessions}
+    for row in diagnoses:
+        diagnosis = row.get("diagnosis_json", {})
+        topology = diagnosis.get("experiment_type", "unknown")
+        top_fault = (diagnosis.get("likely_faults") or [{}])[0]
+        fault = top_fault.get("id") or top_fault.get("fault") or top_fault.get("name")
+        if fault:
+            common[(topology, fault)] += 1
+        next_label = diagnosis.get("next_measurement", {}).get("label")
+        if next_label:
+            stalled[next_label] += 1
+        if diagnosis.get("gemma_status") == "blocked_by_safety" or diagnosis.get("safety", {}).get("risk_level") == "high_voltage_or_mains":
+            safety_refusals += 1
+        session = session_by_id.get(row["session_id"])
+        if session and session.get("status") == "resolved":
+            try:
+                resolved_durations.append((datetime.fromisoformat(session["updated_at"]) - datetime.fromisoformat(session["created_at"])).total_seconds())
+            except (TypeError, ValueError):
+                pass
+    return {
+        "total_sessions": len(sessions),
+        "average_time_to_resolution_s": round(sum(resolved_durations) / len(resolved_durations), 2) if resolved_durations else None,
+        "safety_refusals": safety_refusals,
+        "unfinished_sessions": sum(1 for session in sessions if session.get("status") not in {"resolved", "archived"}),
+        "common_faults": [
+            {"topology": topology, "fault": fault, "count": count}
+            for (topology, fault), count in common.most_common(12)
+        ],
+        "stalled_measurements": [
+            {"label": label, "count": count}
+            for label, count in stalled.most_common(12)
+        ],
+    }
 
 
 @app.post("/api/sessions/seed/fault/{topology}/{fault_id}")
