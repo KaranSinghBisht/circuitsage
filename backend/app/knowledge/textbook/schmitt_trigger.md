@@ -1,0 +1,255 @@
+# Schmitt Trigger Lab Notes
+
+## Scope
+- Topology: schmitt_trigger.
+- Circuit family: comparator or op-amp with positive feedback.
+- Goal: convert a noisy or slow analog input into a clean logic-like output.
+- Key idea: two switching thresholds instead of one.
+- Upper threshold is crossed on rising input.
+- Lower threshold is crossed on falling input.
+- The gap between thresholds is hysteresis.
+- Hysteresis prevents chatter near the switching point.
+- Relevant catalog fault: positive_feedback_missing.
+- Relevant catalog fault: threshold_divider_wrong.
+- Relevant catalog fault: input_overdriven.
+- These notes assume low-voltage bench signals.
+- Do not connect mains or unknown external signals.
+- Always know the allowed input common-mode range.
+
+## Core Theory
+- A Schmitt trigger intentionally uses positive feedback.
+- Positive feedback moves the threshold after the output switches.
+- The output state therefore depends on input history.
+- A rising input must cross the upper threshold to switch one way.
+- A falling input must cross the lower threshold to switch back.
+- The threshold gap is the noise margin.
+- Hysteresis is useful for slow sensor signals.
+- Hysteresis is useful for noisy switches.
+- Hysteresis is useful for oscillator thresholds.
+- Comparator outputs may be open collector or push-pull.
+- Op-amps can behave poorly as comparators if overdriven.
+- Dedicated comparators recover faster from saturation.
+- Output swing determines actual threshold values.
+- Supply rails determine output swing limits.
+- Input divider ratios determine feedback fraction.
+- Reference voltage shifts both thresholds.
+- Positive feedback must go to the correct input polarity.
+- Inverting Schmitt trigger switches polarity opposite to non-inverting form.
+- Non-inverting Schmitt trigger returns feedback to non-inverting input.
+- Inverting Schmitt trigger often applies input to inverting input.
+- The exact formula depends on topology.
+- Always derive thresholds from the actual node connections.
+- Do not assume symmetric thresholds unless supplies and reference are symmetric.
+- Single-supply circuits often use a mid-rail reference.
+- Dual-supply circuits may use ground reference.
+- A rail-to-rail comparator still has input and output limits.
+- Pull-up resistor value matters for open-collector outputs.
+- Output loading can shift apparent logic levels.
+- Slow output edges can indicate missing pull-up or excess capacitance.
+- Input overdrive can damage devices or cause phase reversal in some parts.
+
+## Formula Reference
+- Hysteresis width equals upper threshold minus lower threshold.
+- Thresholds depend on output high voltage and output low voltage.
+- Thresholds also depend on resistor divider ratios.
+- For a simple non-inverting divider, Vthreshold can be a weighted average.
+- Weighted average terms include output state and reference.
+- If output high is lower than expected, thresholds shift.
+- If output low is higher than expected, thresholds shift.
+- If feedback resistor is open, the two thresholds collapse toward one threshold.
+- If divider values are swapped, thresholds move and may become asymmetric.
+- If reference is wrong, both thresholds move together.
+- If supply rails are wrong, output levels and thresholds both move.
+- Hysteresis can be measured directly with a slow triangle input.
+- Increase input slowly and record switching voltage.
+- Decrease input slowly and record switching voltage.
+- Use the same probe reference for both measurements.
+- Do not measure thresholds with a fast noisy waveform first.
+- Thresholds should be repeatable across cycles.
+- Chatter means the effective hysteresis is too small.
+- A single switching threshold indicates missing positive feedback.
+- A threshold outside input signal range means divider/reference is wrong.
+- An output that never changes may be saturated, unpowered, or overdriven.
+
+## Expected Behavior
+- With a slow triangle input, output switches cleanly at two different voltages.
+- The rising-edge switching voltage should be the upper threshold.
+- The falling-edge switching voltage should be the lower threshold.
+- Output should remain stable while input stays between thresholds.
+- Small noise between thresholds should not toggle output.
+- Output high should be close to the device high level.
+- Output low should be close to the device low level.
+- The input node should not exceed allowed range.
+- The reference node should remain stable during output transitions.
+- The feedback node should change when output changes.
+- The threshold node should move according to output state.
+- Switching may be fast even when input is slow.
+- Comparator output may need a pull-up resistor.
+- Output edge speed depends on output type and load.
+- If output chatters, hysteresis is missing or too small.
+- If output switches at the wrong voltage, divider values may be wrong.
+- If output never switches, input may not cross thresholds.
+- If output is stuck high or low, check rails and input overdrive.
+- If thresholds shift with output load, output high/low levels are loading.
+- If thresholds drift, reference or resistor contact may be unstable.
+
+## Common Fault: positive_feedback_missing
+- Fault id: positive_feedback_missing.
+- Meaning: feedback path that creates hysteresis is absent or connected wrong.
+- Symptom: output chatters near the threshold.
+- Symptom: rising and falling thresholds are nearly identical.
+- Symptom: slow input causes multiple transitions.
+- The feedback resistor may be in the wrong row.
+- The feedback may be connected to the wrong input.
+- The feedback may be negative instead of positive.
+- A jumper may connect output to reference instead of threshold node.
+- Use power off continuity to trace feedback resistor.
+- Use a slow triangle input to expose missing hysteresis.
+- Measure rising threshold.
+- Measure falling threshold.
+- If the two are the same, hysteresis is absent.
+- If the output oscillates near threshold, feedback may be weak or missing.
+- Verify output node actually drives the feedback divider.
+- Verify feedback divider connects to the intended input.
+- After repair, switching should happen at two voltages.
+- After repair, chatter should stop.
+
+## Common Fault: threshold_divider_wrong
+- Fault id: threshold_divider_wrong.
+- Meaning: resistor divider values or placement set wrong thresholds.
+- Symptom: output switches too early or too late.
+- Symptom: input never reaches one threshold.
+- Symptom: hysteresis exists but is the wrong width.
+- A 10 k/100 k swap can move thresholds drastically.
+- Equal resistors can create thresholds unlike the intended design.
+- Resistors placed across the breadboard gap may not connect.
+- Divider tied to the wrong reference shifts both thresholds.
+- Output high/low levels must be measured, not assumed.
+- Compute thresholds using measured output levels.
+- Measure resistor values with power off if uncertain.
+- Measure threshold node while output is high.
+- Measure threshold node while output is low.
+- Compare measured thresholds with design calculations.
+- If hysteresis width is wrong, inspect feedback ratio.
+- If both thresholds are shifted, inspect reference voltage.
+- If only one threshold seems wrong, inspect output swing and loading.
+- After repair, rising and falling thresholds should match the expected values.
+
+## Common Fault: input_overdriven
+- Fault id: input_overdriven.
+- Meaning: input exceeds allowed range or overdrives the device.
+- Symptom: output sticks, recovers slowly, or behaves unpredictably.
+- Symptom: comparator input protection may conduct.
+- Symptom: op-amp phase reversal may appear in unsuitable devices.
+- Check the input common-mode range in the datasheet brief.
+- Check absolute maximum input limits.
+- Limit input amplitude before repeated testing.
+- A function generator offset can push signal outside range.
+- A single-supply comparator may not accept negative input voltage.
+- A dual-supply comparator may still have input limits below rails.
+- Add input protection only if part of the design.
+- Lower amplitude and remove offset to test recovery.
+- If behavior becomes normal at safe input levels, overdrive was likely.
+- Record the original amplitude and offset as evidence.
+- Do not keep testing outside ratings.
+- After repair, input should stay within allowed range.
+
+## Measurement Plan
+- Step 1: identify comparator/op-amp part.
+- Step 2: measure supply pins.
+- Step 3: measure output high and low levels.
+- Step 4: measure reference node.
+- Step 5: apply slow triangle input.
+- Step 6: capture input and output together.
+- Step 7: measure rising switching threshold.
+- Step 8: measure falling switching threshold.
+- Step 9: compute hysteresis width.
+- Step 10: compare thresholds with design.
+- Step 11: inspect feedback resistor continuity.
+- Step 12: inspect divider resistor values.
+- Step 13: inspect pull-up resistor if output is open collector.
+- Step 14: reduce input amplitude if input is outside range.
+- Step 15: record whether output chatters.
+- Step 16: record whether thresholds are repeatable.
+- Step 17: save waveform with slow input.
+- Step 18: save close photo of feedback network.
+- Step 19: rerun diagnosis after repair.
+- Step 20: document final threshold values.
+
+## Node Checklist
+- Node vin should be the slow test signal.
+- Node vref should be stable.
+- Node vout should switch between low and high states.
+- Node feedback should follow output state through a resistor network.
+- Node threshold should be different for high and low output states.
+- Node input_plus must match intended polarity.
+- Node input_minus must match intended polarity.
+- Node vcc must match supply.
+- Node vee or ground must match supply plan.
+- Pull-up node must connect if required.
+- Output load must not exceed device capability.
+- Ground reference must be shared with instruments.
+- Scope channel 1 can measure input.
+- Scope channel 2 can measure output.
+- Math cursors can measure thresholds.
+- Use high impedance probes for threshold nodes.
+- Avoid loading high-value dividers.
+- Use a slow enough triangle to read thresholds.
+- Avoid noisy generator settings when measuring hysteresis.
+- Save both rising and falling transitions.
+
+## Debug Reasoning
+- If there is no hysteresis, inspect positive_feedback_missing.
+- If hysteresis exists but wrong, inspect threshold_divider_wrong.
+- If output sticks after large input, inspect input_overdriven.
+- If output never changes, check input crosses thresholds.
+- If output only goes one way, check output stage and pull-up.
+- If thresholds move with load, measure output high/low under load.
+- If thresholds move with supply, stabilize rails.
+- If output chatters, increase hysteresis only according to design.
+- If reference is noisy, filter or buffer reference.
+- If the comparator is open collector, missing pull-up can look like stuck low.
+- If using an op-amp, saturation recovery may be slow.
+- If using single supply, negative input may violate common-mode range.
+- If divider uses very high values, probe loading can corrupt threshold.
+- If divider uses very low values, output may be overloaded.
+- If feedback connects to wrong input, it can become negative feedback.
+- Negative feedback turns the circuit into a linear amplifier region.
+- A linear amplifier region can oscillate with slow input.
+- Always draw the actual node graph from the breadboard.
+- Diagnose thresholds with measured voltages, not only resistor colors.
+- Confirm the expected direction of switching before calling polarity wrong.
+
+## Student Explanation Prompts
+- Ask for measured rising threshold.
+- Ask for measured falling threshold.
+- Ask whether output chatters near threshold.
+- Ask for output high and output low levels.
+- Ask whether the output requires pull-up.
+- Ask what input amplitude and offset were used.
+- Ask for comparator/op-amp part number.
+- Ask whether the design is inverting or non-inverting.
+- Ask for feedback resistor values.
+- Ask for threshold divider values.
+- Ask for reference voltage.
+- Ask for a slow triangle capture.
+- Ask for a close photo of the feedback divider.
+- Ask whether the input ever exceeds rails.
+- Ask whether threshold measurements repeat across cycles.
+
+## Repair Confirmation
+- After feedback repair, rising and falling thresholds should separate.
+- After divider repair, thresholds should match expected values.
+- After reducing overdrive, output should recover predictably.
+- Output should not chatter with slow input.
+- Output high and low should meet the logic or lab target.
+- The reference node should stay stable during switching.
+- The input should remain within absolute maximum limits.
+- The repaired report should include threshold table.
+- The repaired report should explain hysteresis in one sentence.
+- The repaired report should show before and after waveform.
+- Corrected concept: positive feedback creates two thresholds.
+- Corrected concept: missing hysteresis causes chatter.
+- Corrected concept: divider values set the switching points.
+- Corrected concept: input range limits still apply to comparator circuits.
+- End of Schmitt trigger notes.

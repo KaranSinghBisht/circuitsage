@@ -1,0 +1,251 @@
+# Op-Amp Differentiator Lab Notes
+
+## Scope
+- Topology: op_amp_differentiator.
+- Circuit family: inverting op-amp with capacitor at the input.
+- Ideal function: output is proportional to rate of change of input.
+- Practical function: edge emphasis with bandwidth limits.
+- Common use: pulse shaping and slope detection.
+- Common lab risk: ideal differentiator is noisy and unstable.
+- Relevant catalog fault: input_cap_open.
+- Relevant catalog fault: feedback_resistor_wrong.
+- Relevant catalog fault: bandlimit_missing.
+- These notes assume low-voltage op-amp exercises.
+- Debug DC bias before interpreting edge response.
+- Debug stability before increasing frequency.
+
+## Core Theory
+- A differentiator converts changing input voltage into current through a capacitor.
+- Capacitor current is I = C*dVin/dt.
+- The feedback resistor converts that current into output voltage.
+- Ideal transfer is Vout/Vin = -s*Rf*Cin.
+- The minus sign comes from the inverting op-amp form.
+- Gain rises with frequency in the ideal model.
+- Rising gain makes high-frequency noise worse.
+- Rising gain can make oscillation likely.
+- Practical differentiators add band-limit components.
+- A small resistor in series with the input capacitor limits high-frequency gain.
+- A small capacitor across the feedback resistor limits very high-frequency gain.
+- The useful differentiating band lies between lower and upper corner frequencies.
+- A square-wave input creates pulses at transitions.
+- A triangle-wave input creates a square-ish output.
+- A sine-wave input output amplitude grows with frequency.
+- A DC input should produce near-zero output after transients.
+- Input bias paths still matter for real op-amps.
+- The non-inverting input needs a reference.
+- The inverting node is a virtual reference only when feedback is intact.
+- Op-amp GBW limits useful differentiation.
+- Slew rate limits sharp pulse amplitude.
+- Layout capacitance matters at high frequency.
+- Breadboards are poor for high-frequency differentiators.
+- Long wires add inductance and stray capacitance.
+- Noise can look like real signal at the output.
+- A clean input can look noisy if the differentiator bandwidth is too wide.
+- Always compare input and output on the same time base.
+- Always confirm the output is not clipping.
+- Do not increase amplitude to fix a missing pulse.
+- First verify the capacitor path and feedback resistor.
+
+## Formula Reference
+- Ideal transfer: H(s) = -s*Rf*Cin.
+- Sine magnitude: |H(jw)| = w*Rf*Cin.
+- Output amplitude for sine: Vout = 2*pi*f*Rf*Cin*Vin.
+- Doubling frequency doubles ideal output amplitude.
+- Doubling Cin doubles ideal output amplitude.
+- Doubling Rf doubles ideal output amplitude.
+- A step input produces a narrow output pulse.
+- Pulse area is related to input step size and Rf*Cin.
+- Practical input corner can be set by series resistor and Cin.
+- Practical feedback corner can be set by Rf and feedback capacitor.
+- Upper frequency limiting prevents excessive noise gain.
+- Lower frequency behavior prevents DC output from wandering.
+- If a band-limit resistor is missing, high-frequency gain may be too high.
+- If Rf is wrong by 10x, pulse amplitude changes by 10x.
+- If Cin is open, no differentiating current reaches the summing node.
+- If Cin is shorted, the circuit becomes closer to an inverting amplifier.
+- If Rf is open, the op-amp saturates open-loop.
+- If Rf is shorted, output is near zero.
+- If the input source has high impedance, it changes the differentiator response.
+- If the source is set for 50 ohm mode incorrectly, amplitude assumptions break.
+
+## Expected Behavior
+- With DC input, output should settle near reference.
+- With a slow ramp input, output should be roughly constant.
+- With a triangle input, output should switch between levels.
+- With a square input, output should show positive and negative pulses.
+- With a sine input, output leads/inverts according to differentiator phase.
+- Pulse polarity depends on inverting configuration.
+- Rising input edge should produce one output polarity.
+- Falling input edge should produce the opposite polarity.
+- Output should return to baseline between edges if bandwidth is appropriate.
+- Output should not ring excessively after each edge.
+- Mild ringing can happen with a very fast edge and breadboard wiring.
+- Severe ringing suggests missing band-limit or poor layout.
+- Output should not rail during normal edge tests.
+- Output noise should be bounded in the practical circuit.
+- If output is flat, input capacitor path may be open.
+- If output is huge and noisy, band-limit may be missing.
+- If output pulses are correct shape but wrong amplitude, Rf may be wrong.
+- If output baseline drifts, check reference and input bias.
+- If output oscillates, reduce bandwidth and inspect decoupling.
+- If output only responds when touching wires, suspect open input path.
+
+## Common Fault: input_cap_open
+- Fault id: input_cap_open.
+- Meaning: the input capacitor does not connect the source to the summing node.
+- Symptom: no edge pulses appear at output.
+- Symptom: output may sit near baseline or drift.
+- Symptom: source signal is present before the capacitor but not after it.
+- The capacitor lead may be in the wrong breadboard row.
+- The capacitor may be cracked or absent.
+- A polarized part may be incorrectly installed if used.
+- A student may wire the capacitor to ground instead of the input node.
+- Power off before continuity checks.
+- Check from source node to capacitor input lead.
+- Check from capacitor output lead to inverting input network.
+- With AC signal present, probe both sides of the capacitor.
+- The source side should show the input waveform.
+- The summing side may be small due to virtual ground.
+- If both sides are identical large waveforms, feedback may not be controlling.
+- If source side has signal and output is flat, inspect capacitor and Rf.
+- After repair, square input should create pulses.
+- After repair, triangle input should create square-ish output.
+
+## Common Fault: feedback_resistor_wrong
+- Fault id: feedback_resistor_wrong.
+- Meaning: feedback resistor value is not design value.
+- Symptom: output pulses have wrong amplitude.
+- Symptom: sine-response gain slope is too high or too low.
+- Symptom: shape may look correct while scale is wrong.
+- A decade resistor error creates a decade amplitude error.
+- Students often swap 10 k and 100 k.
+- Parallel breadboard paths can reduce effective resistance.
+- A wrong Rf can also change noise sensitivity.
+- Measure Rf with power off when possible.
+- Compare pulse amplitude to calculated trend.
+- Compare sine output at two frequencies.
+- If frequency doubling doubles output but amplitude is off, Rf or Cin is likely wrong.
+- If frequency doubling does not change output, the circuit may be saturated.
+- If output clips, lower input amplitude before judging Rf.
+- If output noise grows excessive, Rf may be too large.
+- Correct Rf should restore expected amplitude without changing topology.
+
+## Common Fault: bandlimit_missing
+- Fault id: bandlimit_missing.
+- Meaning: stabilizing/band-limiting component is omitted.
+- Symptom: output is noisy, rings, or oscillates.
+- Symptom: edge pulses are too sharp and unstable.
+- Symptom: high-frequency noise dominates the useful signal.
+- Ideal differentiators amplify high-frequency noise.
+- Practical circuits intentionally limit bandwidth.
+- A missing input series resistor can overdrive the summing node at high frequency.
+- A missing feedback capacitor can leave too much high-frequency gain.
+- Breadboard parasitics worsen missing-bandlimit symptoms.
+- Decoupling capacitors near the op-amp matter.
+- Check if the lab schematic includes Rseries or Cfeedback.
+- Check if those parts are actually installed.
+- Probe output with input grounded.
+- If output still shows high-frequency oscillation, suspect stability.
+- Add the intended band-limit part, not a random capacitor.
+- After repair, pulses should be bounded and repeatable.
+- After repair, noise floor should fall.
+
+## Measurement Plan
+- Step 1: measure op-amp supply rails.
+- Step 2: measure reference node voltage.
+- Step 3: measure output DC with input grounded.
+- Step 4: apply a small square wave.
+- Step 5: capture input and output on the same time base.
+- Step 6: measure pulse polarity for rising edge.
+- Step 7: measure pulse polarity for falling edge.
+- Step 8: measure pulse amplitude.
+- Step 9: apply a triangle wave.
+- Step 10: confirm output approximates two levels.
+- Step 11: apply sine at frequency f.
+- Step 12: apply sine at 2f.
+- Step 13: check whether output amplitude roughly doubles.
+- Step 14: lower input amplitude if output clips.
+- Step 15: check source side of input capacitor.
+- Step 16: check summing side of input capacitor.
+- Step 17: check feedback resistor continuity.
+- Step 18: check band-limit components.
+- Step 19: record a waveform with input grounded for noise.
+- Step 20: save a before/after waveform for report.
+
+## Node Checklist
+- Node vin should show the stimulus.
+- Node c_in_source should follow the source.
+- Node c_in_sum should be near virtual ground for small signals.
+- Node n_inv should not swing large in closed loop.
+- Node n_noninv should be at the reference.
+- Node vout should pulse on edges.
+- Node vcc should be correct.
+- Node vee should be correct.
+- Node bandlimit_in should connect if present.
+- Node bandlimit_fb should connect if present.
+- The capacitor must be in the input path.
+- The feedback resistor must bridge output and summing node.
+- Feedback capacitor, if used, must parallel Rf.
+- Input series resistor, if used, must be in series with Cin.
+- Scope ground must be circuit ground.
+- Use short ground leads for edge measurements.
+- Use bandwidth limit on the scope only after checking raw noise.
+- Record probe attenuation settings.
+- Record source amplitude at the circuit input.
+- Record time-base settings.
+
+## Debug Reasoning
+- If output is flat, suspect input_cap_open first.
+- If output pulses but amplitude is wrong, suspect feedback_resistor_wrong.
+- If output is noisy or rings, suspect bandlimit_missing.
+- If output rails, check feedback and input amplitude.
+- If output oscillates with input grounded, check decoupling and bandwidth.
+- If pulses are asymmetric, check op-amp output swing.
+- If positive pulse clips but negative does not, check rail headroom.
+- If triangle input does not produce two levels, check source and capacitor.
+- If sine amplitude does not scale with frequency, check saturation.
+- If results change with hand position, reduce wire length and inspect opens.
+- If source signal disappears when connected, the source is overloaded.
+- If the inverting node has a large waveform, the op-amp is not in linear feedback.
+- If the circuit uses single supply, ensure input is biased around mid-rail.
+- If input is centered at 0 V on single supply, negative half-cycle may be invalid.
+- If the op-amp is too slow, choose lower frequency for the lab proof.
+- Do not blame the catalog before checking physical layout.
+- Do not substitute a different op-amp until wiring and values are verified.
+- Do not judge differentiator performance with a noisy floating input.
+- Do not use an ideal differentiator as a stable production circuit.
+- Practical differentiators are always bandwidth-limited.
+
+## Student Explanation Prompts
+- Ask what input waveform was used.
+- Ask what edge speed or frequency was used.
+- Ask for input capacitor marking.
+- Ask for feedback resistor marking.
+- Ask whether band-limit parts are in the schematic.
+- Ask whether output rings with input grounded.
+- Ask for a two-channel scope capture.
+- Ask whether the output clips.
+- Ask whether the op-amp is single-supply or dual-supply.
+- Ask for decoupling capacitor placement.
+- Ask for a breadboard photo around the summing node.
+- Ask for a sine test at f and 2f.
+- Ask for pulse amplitude before and after repair.
+- Ask for output noise level with grounded input.
+- Ask for the intended useful frequency band.
+
+## Repair Confirmation
+- After fixing input_cap_open, edge pulses should return.
+- After correcting feedback_resistor_wrong, pulse amplitude should match design.
+- After adding band-limit, ringing and noise should reduce.
+- The output should return to baseline after each pulse.
+- The output should not rail under intended input amplitude.
+- The sine test should show gain increasing with frequency in the useful band.
+- The triangle test should show a level-like derivative.
+- The grounded-input test should be quiet enough for the lab objective.
+- The repaired report should include why ideal differentiation is risky.
+- The repaired report should include the bandwidth limits.
+- Corrected concept: a differentiator amplifies fast changes and noise.
+- Corrected concept: the input capacitor must feed the summing node.
+- Corrected concept: Rf sets transimpedance scale.
+- Corrected concept: practical differentiators include stability limits.
+- End of op-amp differentiator notes.

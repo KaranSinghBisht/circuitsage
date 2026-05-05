@@ -45,7 +45,7 @@ def ingest(doc_id: str, text: str, metadata: dict[str, Any] | None = None) -> No
 def query(text: str, k: int = 5, filter: dict[str, Any] | None = None) -> list[dict[str, Any]]:
     embedding, _ = embed_with_metadata(text)
     collection = _collection()
-    n_results = min(max(k * 4, k), max(collection.count(), k))
+    n_results = min(max(k * 10, 80, k), max(collection.count(), k))
     result = collection.query(query_embeddings=[embedding], n_results=n_results, where=filter or None)
     ids = result.get("ids", [[]])[0]
     docs = result.get("documents", [[]])[0]
@@ -55,6 +55,7 @@ def query(text: str, k: int = 5, filter: dict[str, Any] | None = None) -> list[d
     for doc_id, document, metadata, distance in zip(ids, docs, metas, distances):
         lexical = _lexical_score(text, document or "")
         source = metadata.get("source", doc_id)
+        source_lexical = _lexical_score(text, str(source).replace("_", " "))
         boost = 1.0 if str(source).startswith("faults/") and lexical > 0 else 0.0
         hits.append(
             {
@@ -62,7 +63,7 @@ def query(text: str, k: int = 5, filter: dict[str, Any] | None = None) -> list[d
                 "source": source,
                 "text": document,
                 "metadata": metadata,
-                "score": round(float(1 - distance) + lexical + boost, 4),
+                "score": round(float(1 - distance) + (2.5 * lexical) + (0.75 * source_lexical) + boost, 4),
             }
         )
     return sorted(hits, key=lambda hit: hit["score"], reverse=True)[:k]

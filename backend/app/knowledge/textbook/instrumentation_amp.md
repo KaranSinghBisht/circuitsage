@@ -1,0 +1,253 @@
+# Instrumentation Amplifier Lab Notes
+
+## Scope
+- Topology: instrumentation_amplifier.
+- Circuit family: high-input-impedance differential amplifier.
+- Common form: three-op-amp instrumentation amplifier.
+- Goal: amplify small differential signal while rejecting common-mode voltage.
+- First stage buffers and amplifies each input.
+- Difference stage subtracts the buffered signals.
+- Gain resistor often sets first-stage gain.
+- Resistor matching controls common-mode rejection.
+- Relevant catalog fault: gain_resistor_open.
+- Relevant catalog fault: input_common_mode_out_of_range.
+- Relevant catalog fault: output_stage_resistor_mismatch.
+- These notes assume low-voltage instructional circuits.
+- Do not attach to patients or live equipment.
+- Treat sensor leads as low-voltage lab signals only.
+
+## Core Theory
+- Instrumentation amplifiers amplify the difference between two inputs.
+- They ideally reject voltage common to both inputs.
+- Input impedance is high, so sensors are lightly loaded.
+- Common-mode rejection depends on resistor matching and op-amp limits.
+- A three-op-amp design has two input buffers and one difference amplifier.
+- The gain resistor between input amplifier stages often controls gain.
+- Opening that gain resistor can collapse or distort gain.
+- The output difference stage needs matched resistor ratios.
+- Mismatched ratios convert common-mode voltage into output error.
+- Input common-mode range is limited by op-amp supply rails.
+- Output swing is limited by supply rails and load.
+- Reference pin or reference node shifts output baseline.
+- Single-supply designs often reference output to mid-rail.
+- Dual-supply designs can reference output to ground.
+- High gain reduces allowable input differential range before saturation.
+- High common-mode voltage can saturate input buffers.
+- Input protection resistors may be required for real sensors.
+- Breadboard resistor tolerance can dominate CMRR.
+- 1 percent resistors are often insufficient for high CMRR.
+- Matched resistor networks improve output-stage accuracy.
+- Op-amp input offset is multiplied by gain.
+- Bias currents create voltage through source resistance.
+- Unequal source resistance can reduce common-mode rejection.
+- Long input leads pick up noise.
+- Twisted pair wiring helps common-mode pickup become common to both inputs.
+- Shielding can help in low-level measurements.
+- Ground loops can create unexpected common-mode voltage.
+- The reference node must be low impedance.
+- The output cannot represent signals outside supply range.
+- A saturated stage invalidates downstream measurements.
+
+## Formula Reference
+- Ideal output: Vout = Gain*(Vplus - Vminus) + Vref.
+- Three-op-amp first-stage gain often includes 1 + 2R/Rg.
+- Rg is the gain-setting resistor.
+- Smaller Rg gives higher gain.
+- Larger Rg gives lower gain.
+- Open Rg may produce default gain or broken stage behavior depending topology.
+- Difference amplifier gain depends on resistor ratios.
+- Good subtraction requires R2/R1 = R4/R3.
+- Common-mode rejection worsens when ratios mismatch.
+- CMRR is often expressed in dB.
+- CMRR dB = 20*log10(differential gain/common-mode gain).
+- Output headroom equals rail limits minus required swing.
+- Differential input times gain must fit inside output swing.
+- Common-mode input must fit inside input-stage common-mode range.
+- Reference voltage adds directly to output target.
+- If Vref is wrong, output baseline shifts.
+- If gain is too high, small offsets saturate output.
+- If source impedance is high, bias-current error increases.
+- If resistor tolerance is loose, common-mode leakage increases.
+- If one input is disconnected, output can rail.
+
+## Expected Behavior
+- With equal inputs, output should sit near Vref.
+- With a small positive differential input, output should move positive from Vref.
+- With a small negative differential input, output should move negative from Vref.
+- Output movement should match designed gain.
+- Common-mode changes should have little effect on output.
+- Input buffers should not saturate.
+- Difference stage should not saturate.
+- Reference node should remain stable.
+- Output should not rail during intended measurements.
+- Input pins should remain within common-mode range.
+- Both input buffer outputs should move with common-mode voltage.
+- Difference stage output should reject common-mode voltage.
+- A gain resistor change should change differential gain.
+- Matched output resistors should preserve CMRR.
+- If output changes when both inputs move together, CMRR is poor.
+- If output rails with equal inputs, common-mode range or reference may be wrong.
+- If output gain is near unity instead of expected high gain, inspect Rg.
+- If one buffer output rails, inspect input common-mode range.
+- If output baseline is wrong, inspect Vref.
+- If output is noisy, inspect input wiring and gain.
+
+## Common Fault: gain_resistor_open
+- Fault id: gain_resistor_open.
+- Meaning: gain-setting resistor is missing or open.
+- Symptom: differential gain is wrong or stage saturates.
+- Symptom: expected small signal is not amplified correctly.
+- The gain resistor may be placed in the wrong breadboard rows.
+- The resistor may not connect between the two input amplifier nodes.
+- A jumper may be missing.
+- A trim pot may be open at one end.
+- Measure Rg with power off.
+- Confirm the resistor connects to the intended op-amp pins.
+- Compare measured gain with formula.
+- If output gain is too low, Rg may be open or too large.
+- If output rails, Rg may be too small or input offset too large.
+- If one first-stage output rails, inspect Rg and common-mode range.
+- After repair, differential gain should match calculation.
+- After repair, equal inputs should return output near Vref.
+- Do not alter output-stage resistors to fix an Rg fault.
+- Rg affects differential gain, not resistor-ratio matching.
+
+## Common Fault: input_common_mode_out_of_range
+- Fault id: input_common_mode_out_of_range.
+- Meaning: input voltages are outside op-amp common-mode range.
+- Symptom: output rails even when differential input is small.
+- Symptom: one or both buffer outputs rail.
+- Symptom: common-mode changes affect output strongly.
+- Single-supply op-amps may not accept inputs near ground unless rail-to-rail.
+- Dual-supply circuits still have input headroom limits.
+- Common-mode voltage is average of the two input voltages.
+- Differential voltage is the difference between inputs.
+- A small differential signal can ride on invalid common-mode voltage.
+- Measure both inputs relative to circuit ground.
+- Compute average common-mode voltage.
+- Compare with datasheet input common-mode range.
+- Measure first-stage outputs.
+- If buffers rail, downstream difference stage cannot fix it.
+- Shift reference or supplies only according to design.
+- Reduce common-mode voltage for test if safe.
+- After repair, buffer outputs should be in linear range.
+- After repair, equal-input output should sit near Vref.
+
+## Common Fault: output_stage_resistor_mismatch
+- Fault id: output_stage_resistor_mismatch.
+- Meaning: difference amplifier resistor ratios are not matched.
+- Symptom: common-mode voltage appears at output.
+- Symptom: equal inputs do not produce Vref output.
+- Symptom: CMRR is poor though differential gain may appear okay.
+- Four resistors in the difference stage form two ratios.
+- The ratios, not just absolute values, must match.
+- A 10 k/100 k swap destroys subtraction.
+- A 1 percent mismatch can be visible at high common-mode voltage.
+- Measure each resistor with power off.
+- Confirm resistor placement matches schematic.
+- Apply equal inputs and vary common-mode voltage.
+- Output should remain near Vref.
+- If output moves with common-mode, ratio mismatch is likely.
+- Matched resistor networks are preferred.
+- After repair, common-mode response should shrink.
+- After repair, differential response should remain as designed.
+
+## Measurement Plan
+- Step 1: identify op-amp part numbers.
+- Step 2: measure positive and negative rails.
+- Step 3: measure reference node Vref.
+- Step 4: measure input plus voltage.
+- Step 5: measure input minus voltage.
+- Step 6: compute differential input.
+- Step 7: compute common-mode input.
+- Step 8: measure first buffer output.
+- Step 9: measure second buffer output.
+- Step 10: measure final output.
+- Step 11: short inputs together at a safe common-mode level.
+- Step 12: confirm output near Vref.
+- Step 13: apply known small differential voltage.
+- Step 14: compute gain from output movement.
+- Step 15: vary common-mode while differential remains zero.
+- Step 16: record common-mode leakage.
+- Step 17: measure Rg with power off.
+- Step 18: measure output-stage resistor ratios with power off.
+- Step 19: save a table of expected and observed values.
+- Step 20: rerun diagnosis after repair.
+
+## Node Checklist
+- Node inp should connect to non-inverting input buffer.
+- Node inn should connect to the other input buffer.
+- Node out1 should be first buffer output.
+- Node out2 should be second buffer output.
+- Node rg_a should connect to one gain resistor terminal.
+- Node rg_b should connect to the other gain resistor terminal.
+- Node diffp should enter the difference stage positive side.
+- Node diffn should enter the difference stage negative side.
+- Node vref should connect to the output reference.
+- Node vout should be final amplifier output.
+- Node vcc should match positive rail.
+- Node vee should match negative rail or ground plan.
+- Input source grounds must be compatible with circuit ground.
+- Sensor leads should not float.
+- Input protection should not load the source unexpectedly.
+- Difference-stage resistors should be close in value or matched.
+- Use high impedance measurement for input nodes.
+- Use a known differential source for gain checks.
+- Use equal inputs for CMRR checks.
+- Record op-amp output nodes separately.
+
+## Debug Reasoning
+- If output rails with equal inputs, check input_common_mode_out_of_range first.
+- If gain is wrong but common-mode rejection is okay, check gain_resistor_open.
+- If equal inputs create output error, check output_stage_resistor_mismatch.
+- If one buffer rails, downstream subtraction is invalid.
+- If both buffers are linear but output rejects poorly, inspect difference stage.
+- If Vref is wrong, output baseline will be wrong.
+- If input source is floating, add intended bias/reference path.
+- If source resistances differ greatly, bias-current errors can appear differential.
+- If gain is high, reduce test differential input amplitude.
+- If output clips, calculate expected output before blaming resistor mismatch.
+- If common-mode is near rail, move test common-mode into valid range.
+- If a resistor network is not matched, replace all related resistors together.
+- If wiring is dense, trace one op-amp stage at a time.
+- If output noise is high, reduce gain or improve input wiring for test.
+- If CMRR measurement is unstable, stabilize common-mode source.
+- If breadboard contacts are loose, readings will jump with touch.
+- If the final output is correct but buffers look odd, verify probe reference.
+- If the report claims CMRR, include the test method.
+- Do not infer CMRR from a single differential-gain measurement.
+- Do not connect biological electrodes in this project.
+
+## Student Explanation Prompts
+- Ask for Vplus and Vminus measurements.
+- Ask for computed common-mode voltage.
+- Ask for computed differential voltage.
+- Ask for first-stage output voltages.
+- Ask for final output voltage.
+- Ask for Rg value and placement.
+- Ask for output-stage resistor values.
+- Ask whether equal inputs produce Vref output.
+- Ask whether common-mode was varied.
+- Ask for op-amp supply rails.
+- Ask for Vref source.
+- Ask for part numbers.
+- Ask for a photo of the resistor network.
+- Ask for source impedance details.
+- Ask whether output clips at expected gain.
+
+## Repair Confirmation
+- After Rg repair, gain should match formula.
+- After common-mode correction, buffers should leave saturation.
+- After resistor-ratio repair, equal inputs should produce Vref.
+- Common-mode changes should create small output changes.
+- Differential input should create predictable output changes.
+- Vref should shift output baseline intentionally.
+- All op-amp outputs should stay within rails.
+- Input nodes should stay within common-mode range.
+- The repaired report should include gain calculation.
+- The repaired report should include equal-input CMRR check.
+- Corrected concept: instrumentation amps amplify difference, not absolute input voltage.
+- Corrected concept: common-mode range can break a small-signal measurement.
+- Corrected concept: Rg sets gain in many three-op-amp designs.
+- Corrected concept: resistor ratio matching sets subtraction quality.
+- End of instrumentation amplifier notes.

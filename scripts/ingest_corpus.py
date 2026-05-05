@@ -23,6 +23,20 @@ def paragraphs(text: str) -> list[str]:
 
 def topology_for(path: Path) -> str | None:
     name = path.stem.lower()
+    if "active_highpass" in name:
+        return "active_highpass_filter"
+    if "integrator" in name:
+        return "op_amp_integrator"
+    if "differentiator" in name:
+        return "op_amp_differentiator"
+    if "schmitt" in name:
+        return "schmitt_trigger"
+    if "timer_555" in name:
+        return "timer_555_astable"
+    if "mosfet" in name:
+        return "nmos_low_side_switch"
+    if "instrumentation" in name:
+        return "instrumentation_amplifier"
     if "op_amp" in name or "floating_noninv" in name:
         return "op_amp_inverting"
     if "rc" in name or "capacitor" in name:

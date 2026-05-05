@@ -1,0 +1,254 @@
+# 555 Timer Astable Lab Notes
+
+## Scope
+- Topology: timer_555_astable.
+- Circuit family: 555 timer oscillator in astable mode.
+- Goal: generate a repeating square or pulse waveform without external clock.
+- Key internal blocks: two comparators, latch, discharge transistor, output stage.
+- Timing capacitor charges and discharges between thresholds.
+- Upper threshold is about 2/3 Vcc in the classic bipolar 555.
+- Lower threshold is about 1/3 Vcc in the classic bipolar 555.
+- Relevant catalog fault: timing_cap_reversed.
+- Relevant catalog fault: threshold_trigger_short.
+- Relevant catalog fault: discharge_pin_open.
+- These notes assume low-voltage instructional 555 circuits.
+- Check whether the part is NE555, CMOS 555, or variant.
+- Pin names matter more than package orientation memory.
+
+## Core Theory
+- In astable mode the 555 has no stable state.
+- The timing capacitor repeatedly charges through resistors.
+- The timing capacitor repeatedly discharges through the discharge transistor.
+- Threshold pin senses the high capacitor voltage threshold.
+- Trigger pin senses the low capacitor voltage threshold.
+- In standard astable mode, threshold and trigger pins are tied to the timing capacitor.
+- Discharge pin connects to the timing resistor junction.
+- Output toggles when the latch changes state.
+- Control voltage pin can shift thresholds if driven.
+- Control voltage pin is often bypassed to ground with a small capacitor.
+- Reset pin must be held high for normal operation.
+- If reset is low, output is forced off.
+- Vcc and ground must be close to the IC pins.
+- Decoupling capacitor near Vcc helps reduce false triggering.
+- The output waveform is not exactly 50 percent duty in the common two-resistor circuit.
+- Duty cycle depends on charge and discharge paths.
+- Charge path often includes RA + RB.
+- Discharge path often includes RB alone.
+- CMOS variants can support wider resistor values.
+- Bipolar NE555 draws more supply current.
+- Large electrolytic timing capacitors can leak.
+- Very high timing resistances are sensitive to leakage and breadboard contamination.
+- Very small timing resistances can overload discharge transistor.
+- Output load affects output high and low levels.
+- Pin numbering errors are common because the package notch is missed.
+- Breadboard power rails may be split.
+- The timing node should show a ramp or exponential waveform.
+- The output should switch when timing node crosses thresholds.
+- If the timing node is flat, the oscillator cannot run.
+
+## Formula Reference
+- Classic astable high time: tH = 0.693*(RA + RB)*C.
+- Classic astable low time: tL = 0.693*RB*C.
+- Period: T = tH + tL.
+- Frequency: f = 1/T.
+- Approximate frequency: f = 1.44/((RA + 2*RB)*C).
+- Duty cycle: D = (RA + RB)/(RA + 2*RB).
+- Timing capacitor voltage swings between about 1/3 Vcc and 2/3 Vcc.
+- Charge time increases if RA is larger.
+- Charge time increases if RB is larger.
+- Discharge time increases if RB is larger.
+- Both times increase if C is larger.
+- A 10x capacitor error creates about 10x frequency error.
+- A 10x resistor error creates about 10x timing error.
+- Duty cycle cannot be 50 percent in the basic two-resistor circuit unless modified.
+- A diode steering path can alter charge and discharge duty.
+- Reset pin low overrides timing formulas.
+- Control voltage changes threshold formulas.
+- Output load does not directly set frequency but can disturb supply.
+- Supply noise can trigger jitter.
+- Pin leakage can disturb long periods.
+- Electrolytic capacitor tolerance can be broad.
+
+## Expected Behavior
+- Output should oscillate without manual triggering.
+- Timing capacitor should ramp upward and downward repeatedly.
+- Timing node lower level should be near 1/3 Vcc.
+- Timing node upper level should be near 2/3 Vcc.
+- Output high should approach the 555 high level under load.
+- Output low should approach ground under load.
+- Frequency should match formula within component tolerance.
+- Duty cycle should match formula within tolerance.
+- Reset pin should remain high.
+- Control pin should be bypassed or held as designed.
+- Discharge pin should switch between pulling low and releasing.
+- Threshold and trigger pins should follow timing capacitor.
+- The output should not remain stuck high.
+- The output should not remain stuck low.
+- The timing capacitor should not heat or bulge.
+- The timing capacitor polarity should match its DC voltage.
+- A reversed electrolytic may leak, distort timing, or fail.
+- A missing discharge path can hold the timing node high.
+- A shorted threshold/trigger wiring mistake can hold the latch incorrectly.
+- A floating reset pin can cause intermittent stops.
+
+## Common Fault: timing_cap_reversed
+- Fault id: timing_cap_reversed.
+- Meaning: timing capacitor is reversed or wrong polarity for its DC voltage.
+- Symptom: frequency is wrong, waveform is distorted, or part warms.
+- Symptom: capacitor voltage may not ramp cleanly.
+- Symptom: electrolytic leakage shifts thresholds and timing.
+- The timing node usually stays positive relative to ground in single-supply astable mode.
+- The electrolytic positive lead usually goes to timing node.
+- The negative lead usually goes to ground.
+- Some lab variations use bipolar or ceramic capacitors.
+- Confirm part type before judging polarity.
+- Do not keep a polarized capacitor reversed under power.
+- Power down before replacing the capacitor.
+- Measure capacitor voltage ramp with scope.
+- If ramp is crushed or leaky, inspect capacitor polarity.
+- Check capacitance marking and voltage rating.
+- Replace damaged electrolytic if it was powered backward.
+- After repair, timing node should ramp between threshold levels.
+- After repair, frequency should become more stable.
+
+## Common Fault: threshold_trigger_short
+- Fault id: threshold_trigger_short.
+- Meaning: threshold and trigger pins are not tied correctly to the timing node.
+- Symptom: oscillator does not start or output sticks.
+- Symptom: timing capacitor ramps but output does not switch at thresholds.
+- In classic astable, pins 2 and 6 are tied together.
+- That joined node connects to timing capacitor.
+- If only one pin connects, one comparator lacks the timing signal.
+- If pins are tied to the wrong node, thresholds are meaningless.
+- If pins are shorted to Vcc or ground, output can stick.
+- Pin numbering mistakes often cause this fault.
+- Inspect package notch orientation.
+- Trace pin 2 and pin 6 separately.
+- Use continuity mode with power off.
+- Measure voltage at pin 2 during operation.
+- Measure voltage at pin 6 during operation.
+- Both should show the same ramp in classic astable mode.
+- If one pin is flat, repair the connection.
+- After repair, output should toggle at ramp thresholds.
+
+## Common Fault: discharge_pin_open
+- Fault id: discharge_pin_open.
+- Meaning: discharge pin is not connected to the timing resistor/capacitor network.
+- Symptom: capacitor charges but does not discharge normally.
+- Symptom: output may stick after one transition.
+- Symptom: timing node may remain high.
+- The discharge transistor inside the 555 pulls pin 7 low.
+- Pin 7 must connect to the resistor junction for discharge.
+- If pin 7 is open, the capacitor lacks intended discharge path.
+- A breadboard row error can leave pin 7 floating.
+- A broken jumper can isolate discharge path.
+- Measure pin 7 waveform with scope.
+- It should switch between low and released states.
+- Measure timing capacitor waveform.
+- If it rises and never falls, suspect discharge path.
+- Power off and check continuity from pin 7 to resistor junction.
+- Confirm RB connects to the timing capacitor node.
+- Confirm RA connects from Vcc to discharge node.
+- After repair, timing node should cycle repeatedly.
+- After repair, output should produce steady oscillation.
+
+## Measurement Plan
+- Step 1: identify the 555 package notch.
+- Step 2: verify pin 1 ground.
+- Step 3: verify pin 8 Vcc.
+- Step 4: verify pin 4 reset is high.
+- Step 5: verify pin 5 control voltage condition.
+- Step 6: measure output pin waveform.
+- Step 7: measure timing capacitor waveform.
+- Step 8: measure trigger pin waveform.
+- Step 9: measure threshold pin waveform.
+- Step 10: measure discharge pin waveform.
+- Step 11: compute expected high time.
+- Step 12: compute expected low time.
+- Step 13: measure high time with cursors.
+- Step 14: measure low time with cursors.
+- Step 15: compare measured frequency.
+- Step 16: inspect capacitor polarity.
+- Step 17: inspect RA and RB values.
+- Step 18: inspect pin 2/pin 6 tie.
+- Step 19: inspect pin 7 connection.
+- Step 20: save output and timing-node waveforms.
+
+## Node Checklist
+- Node vcc should be stable.
+- Node gnd should be common to instruments.
+- Node reset should be high.
+- Node control should be bypassed or driven as designed.
+- Node timing_cap should ramp.
+- Node threshold should see timing ramp.
+- Node trigger should see timing ramp.
+- Node discharge should switch low and open.
+- Node output should toggle.
+- Node RA_top should connect to Vcc.
+- Node RA_RB should connect to discharge pin.
+- Node RB_cap should connect to timing capacitor.
+- Timing capacitor negative should connect to ground in standard single-supply circuit.
+- Output load should be within current rating.
+- Add decoupling close to the IC.
+- Use DC coupling on scope for timing capacitor.
+- Use trigger on output for stable display.
+- Use cursors for timing.
+- Record Vcc because thresholds scale with Vcc.
+- Record actual resistor values if timing is off.
+
+## Debug Reasoning
+- If output stuck low, check reset pin first.
+- If output stuck high, check threshold/trigger and discharge path.
+- If timing node flat at ground, capacitor may be shorted or discharge stuck.
+- If timing node flat at Vcc, discharge path may be open.
+- If timing node ramps but output does not switch, inspect pins 2 and 6.
+- If output toggles once then stops, inspect discharge_pin_open.
+- If frequency is wrong but waveform shape is correct, inspect RA/RB/C values.
+- If duty cycle is wrong, inspect resistor placement.
+- If timing changes when touched, suspect high impedance leakage or loose node.
+- If output resets randomly, inspect pin 4 and supply decoupling.
+- If output spikes on supply, add decoupling and reduce load.
+- If capacitor is polarized, confirm its voltage never reverses.
+- If a CMOS 555 is used, output levels differ from bipolar assumptions.
+- If a bipolar NE555 is used, output high may not reach Vcc.
+- If control pin is floating, thresholds can be noisy.
+- If pin numbers are wrong, redraw the package top view.
+- Do not trust a breadboard rail without measuring continuity.
+- Do not swap the IC before checking pin wiring.
+- Do not infer timing from LED blinking alone.
+- Use the scope timing node as the main evidence.
+
+## Student Explanation Prompts
+- Ask for RA, RB, and C values.
+- Ask for measured high time.
+- Ask for measured low time.
+- Ask for Vcc.
+- Ask for output waveform.
+- Ask for timing capacitor waveform.
+- Ask whether pin 2 and pin 6 are tied.
+- Ask whether pin 7 reaches the resistor junction.
+- Ask whether reset pin is tied high.
+- Ask what 555 variant is installed.
+- Ask for capacitor polarity photo.
+- Ask for package notch orientation photo.
+- Ask whether the output load is an LED, buzzer, or logic input.
+- Ask whether a control pin capacitor is installed.
+- Ask whether the circuit starts reliably after power cycle.
+
+## Repair Confirmation
+- After capacitor polarity repair, timing ramp should be clean.
+- After threshold/trigger repair, output should switch at thresholds.
+- After discharge repair, capacitor should both charge and discharge.
+- High time should match formula within tolerance.
+- Low time should match formula within tolerance.
+- Output should repeat for many cycles.
+- Reset pin should stay high during operation.
+- Control pin should stay quiet.
+- Supply rail should stay stable during output transitions.
+- The repaired report should include timing calculations.
+- The repaired report should show timing-node waveform.
+- Corrected concept: pin 2 and pin 6 must sense the timing capacitor in astable mode.
+- Corrected concept: pin 7 provides the discharge path.
+- Corrected concept: electrolytic timing capacitors have polarity.
+- Corrected concept: thresholds scale with Vcc.
+- End of 555 astable notes.
