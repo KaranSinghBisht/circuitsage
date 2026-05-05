@@ -86,6 +86,7 @@ export function Studio({ sessionId }: { sessionId: string }) {
           <button onClick={() => setLocation("/educator")}>Educator</button>
           <button onClick={startBench}><QrCode size={17} /> Start Bench</button>
           <button onClick={generateReport}><ClipboardList size={17} /> Report</button>
+          <a className="button-link" href={api.reportPdfUrl(sessionId)} target="_blank" rel="noreferrer">PDF</a>
           <button className="icon-button" onClick={refresh} aria-label="Refresh"><RefreshCw size={17} /></button>
         </div>
       </header>

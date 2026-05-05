@@ -11,7 +11,7 @@ from typing import Annotated
 import qrcode
 from fastapi import Body, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 
 from .config import get_settings
 from .database import db, init_db, read_text_excerpt, row_to_dict, rows_to_dicts, utc_now
@@ -25,6 +25,8 @@ from .schemas import (
 )
 from .services.agent_orchestrator import build_report, diagnose_session
 from .services.ollama_client import OllamaClient, parse_json_response
+from .tools.parse_netlist import parse_netlist_file
+from .tools.report_builder import generate_report_pdf
 from .tools.safety_check import safety_check
 from .tools.schematic_to_netlist import image_file_to_base64, recognize_schematic
 
@@ -749,3 +751,22 @@ def get_lab_report(session_id: str) -> dict:
     if not report:
         return {"session_id": session_id, "markdown": ""}
     return {"session_id": session_id, "markdown": report["markdown"]}
+
+
+@app.get("/api/sessions/{session_id}/report.pdf")
+def get_lab_report_pdf(session_id: str) -> Response:
+    session = _get_session_or_404(session_id)
+    with db() as conn:
+        measurements = rows_to_dicts(conn.execute("SELECT * FROM measurements WHERE session_id = ? ORDER BY created_at", (session_id,)).fetchall())
+        artifacts = rows_to_dicts(conn.execute("SELECT * FROM artifacts WHERE session_id = ? ORDER BY created_at", (session_id,)).fetchall())
+        diagnosis_row = conn.execute("SELECT * FROM diagnoses WHERE session_id = ? ORDER BY created_at DESC LIMIT 1", (session_id,)).fetchone()
+    diagnosis = row_to_dict(diagnosis_row)
+    diagnosis_json = diagnosis["diagnosis_json"] if diagnosis else None
+    netlist_artifact = next((artifact for artifact in artifacts if artifact["kind"] == "netlist" and Path(artifact["path"]).exists()), None)
+    parsed_netlist = parse_netlist_file(netlist_artifact["path"]) if netlist_artifact else None
+    pdf = generate_report_pdf(session, diagnosis_json, measurements, parsed_netlist, artifacts)
+    return Response(
+        pdf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{session_id}-circuitsage-report.pdf"'},
+    )

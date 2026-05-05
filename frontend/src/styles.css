@@ -18,6 +18,7 @@
 body { margin: 0; background: var(--bg); color: var(--text); }
 button, input, textarea, select { font: inherit; }
 button { border: 1px solid var(--line); background: var(--panel-2); color: var(--text); min-height: 40px; padding: 0 14px; display: inline-flex; gap: 8px; align-items: center; justify-content: center; cursor: pointer; }
+.button-link { border: 1px solid var(--line); background: var(--panel-2); color: var(--text); min-height: 40px; padding: 0 14px; display: inline-flex; gap: 8px; align-items: center; justify-content: center; text-decoration: none; }
 button:hover { border-color: var(--accent); }
 button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, a:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
 button:disabled { opacity: .55; cursor: wait; }
