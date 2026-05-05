@@ -94,29 +94,45 @@ def _load_recent_messages(session_id: str, limit: int = 8) -> list[dict[str, str
 
 def _measurements_from_messages(messages: list[dict[str, str]]) -> list[dict[str, Any]]:
     extracted: list[dict[str, Any]] = []
-    patterns = [
-        (r"\b(V[_\s-]?noninv|non[-\s]?inverting(?: input)?|pin 3)\b[^0-9+-]*([+-]?\d+(?:\.\d+)?)\s*(V|volts?)?", "V_noninv"),
-        (r"\b(collector|vc)\b[^0-9+-]*([+-]?\d+(?:\.\d+)?)\s*(V|volts?)?", "collector_voltage"),
-        (r"\b(loaded[_\s-]?vout|output|vout)\b[^0-9+-]*([+-]?\d+(?:\.\d+)?)\s*(V|volts?)?", "loaded_vout"),
-        (r"\b(gain|vout/vin)\b[^0-9+-]*([+-]?\d+(?:\.\d+)?)", "closed_loop_gain"),
+    uncertainty = re.compile(r"\b(expected|should be|predicted|in theory|the lab manual says)\b", re.IGNORECASE)
+    measurement_context = (
+        r"(?:i\s+(?:measured|got|read|saw|see)|measured(?:\s+a)?|reading\s+(?:was|is|of)|"
+        r"the\s+meter\s+(?:shows|read|reads)|i\s+have\s+about|comes\s+out\s+to|came\s+out\s+to|got)"
+    )
+    value_after_context = re.compile(
+        measurement_context + r"[^0-9+-]{0,20}([+-]?\d+(?:\.\d+)?)\s*(V|volts?)?",
+        re.IGNORECASE,
+    )
+    labels = [
+        (re.compile(r"\b(V[_\s-]?noninv|non[-\s]?inverting(?: input)?|pin 3)\b", re.IGNORECASE), "V_noninv"),
+        (re.compile(r"\b(V\+|positive rail)\b", re.IGNORECASE), "V+"),
+        (re.compile(r"\b(V-|negative rail)\b", re.IGNORECASE), "V-"),
+        (re.compile(r"\b(Vc|collector(?: voltage)?)\b", re.IGNORECASE), "collector_voltage"),
+        (re.compile(r"\bloaded[_\s-]?vout\b", re.IGNORECASE), "loaded_vout"),
+        (re.compile(r"\bVout\b", re.IGNORECASE), "Vout"),
     ]
     for message in messages:
         if message["role"] != "user":
             continue
         content = message["content"]
-        for pattern, label in patterns:
-            match = re.search(pattern, content, flags=re.IGNORECASE)
-            if match:
-                unit = "ratio" if "gain" in label else "V"
+        if uncertainty.search(content):
+            continue
+        value_match = value_after_context.search(content)
+        if not value_match:
+            continue
+        for label_pattern, label in labels:
+            label_match = label_pattern.search(content)
+            if label_match and abs(label_match.start() - value_match.start()) <= 100:
                 extracted.append(
                     {
                         "id": f"memory_{len(extracted)}",
                         "label": label,
-                        "value": float(match.group(2)),
-                        "unit": unit,
+                        "value": float(value_match.group(1)),
+                        "unit": "V",
                         "mode": "chat_memory",
                         "context": "extracted from recent chat",
-                        "source": "chat_memory",
+                        "source": "chat_memory_inferred",
+                        "metadata": {"source": "chat_memory_inferred", "confidence": "low"},
                     }
                 )
     return extracted

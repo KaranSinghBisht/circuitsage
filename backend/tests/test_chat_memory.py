@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 
 from app.database import db
 from app.main import app
+from app.services.agent_orchestrator import _measurements_from_messages
 
 
 async def fail_ollama(*args: Any, **kwargs: Any) -> dict[str, Any]:
@@ -48,3 +49,26 @@ def test_chat_memory_reuses_prior_measurement_and_persists_tool_trace(monkeypatc
     metadata = json.loads(row["metadata_json"])
     assert metadata["tool_calls"]
     assert metadata["tool_calls"][0]["tool_name"]
+
+
+def test_chat_memory_ignores_expected_gain() -> None:
+    result = _measurements_from_messages([{"role": "user", "content": "My circuit's expected gain is 4.7."}])
+
+    assert result == []
+
+
+def test_chat_memory_extracts_explicit_bench_measurement() -> None:
+    result = _measurements_from_messages(
+        [{"role": "user", "content": "I measured V_noninv at the bench and got 2.8 V."}]
+    )
+
+    assert len(result) == 1
+    assert result[0]["value"] == 2.8
+    assert result[0]["metadata"]["source"] == "chat_memory_inferred"
+    assert result[0]["metadata"]["confidence"] == "low"
+
+
+def test_chat_memory_ignores_lab_manual_voltage() -> None:
+    result = _measurements_from_messages([{"role": "user", "content": "The lab manual says the rail should be 12 V."}])
+
+    assert result == []
