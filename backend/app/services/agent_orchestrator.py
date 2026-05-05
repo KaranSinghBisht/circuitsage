@@ -11,7 +11,7 @@ from ..config import get_settings
 from ..database import db, row_to_dict, rows_to_dicts, utc_now
 from ..tools.measurement_compare import compare_expected_vs_observed
 from ..tools.parse_netlist import parse_netlist_file
-from ..tools.rag import retrieve_lab_manual
+from ..tools.rag import retrieve
 from ..tools.report_builder import generate_report
 from ..tools.safety_check import safety_check
 from ..tools.waveform_analysis import analyze_waveform_csv
@@ -219,18 +219,31 @@ async def diagnose_session(session_id: str, user_message: str | None = None) -> 
         waveform = analyze_waveform_csv(_artifact_path(waveform_artifact))
         tool_calls.append(_tool_call("analyze_waveform_csv", started, waveform))
 
-    manual_artifact = _find_artifact(artifacts, "manual")
     manual = {"snippets": []}
-    if manual_artifact:
-        started = time.perf_counter()
-        manual = retrieve_lab_manual(_artifact_path(manual_artifact), user_message or "saturation non-inverting ground")
-        tool_calls.append(_tool_call("retrieve_lab_manual", started, manual))
+    manual_artifacts = [artifact for artifact in artifacts if artifact["kind"] == "manual"]
 
     started = time.perf_counter()
     comparison = compare_expected_vs_observed(netlist.get("computed", {}).get("gain"), waveform, evidence_measurements)
     tool_calls.append(_tool_call("compare_expected_vs_observed", started, comparison))
 
     fallback = build_catalog_diagnosis(session, netlist, waveform, comparison, evidence_measurements, safety)
+    started = time.perf_counter()
+    top_fault = (fallback.get("likely_faults") or [{}])[0]
+    retrieve_query = " ".join(
+        str(part)
+        for part in [top_fault.get("id"), top_fault.get("name"), user_message or "circuit fault"]
+        if part
+    )
+    if fallback.get("experiment_type") == "unknown":
+        manual = {"snippets": [], "from_corpus": 0, "from_session": 0}
+    else:
+        manual = retrieve(
+            retrieve_query,
+            topology=fallback.get("experiment_type"),
+            k=4,
+            session_artifacts=manual_artifacts,
+        )
+    tool_calls.append(_tool_call("retrieve", started, manual))
     started = time.perf_counter()
     tool_calls.append(
         _tool_call(
