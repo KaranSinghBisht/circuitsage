@@ -23,11 +23,11 @@ import { LivePanel } from "../components/LivePanel";
 
 export function Studio({ sessionId }: { sessionId: string }) {
   const [, setLocation] = useLocation();
-  const { locale } = useI18n();
+  const { locale, t } = useI18n();
   const { session, refresh } = useSession(sessionId);
   const modelHealth = useGemmaHealth();
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("My output is stuck near +12V. What should I check first?");
+  const [message, setMessage] = useState(t.defaultDiagnosisPrompt);
   const [qr, setQr] = useState<{ url: string; data_url: string } | null>(null);
   const [recognizedNetlist, setRecognizedNetlist] = useState<{ netlist: string; confidence: number; missing: string[]; detected_topology: string } | null>(null);
 
@@ -75,20 +75,20 @@ export function Studio({ sessionId }: { sessionId: string }) {
   return (
     <main className="studio-shell">
       <header className="topbar">
-        <button className="ghost" onClick={() => setLocation("/")}>CircuitSage</button>
+        <button className="ghost" onClick={() => setLocation("/")}>{t.app}</button>
         <div>
           <h1>{session.title}</h1>
           <span className="status-pill">{session.status}</span>
           <OfflineBadge health={modelHealth} />
         </div>
         <div className="top-actions">
-          <button onClick={() => setLocation(`/companion?session=${sessionId}`)}><Bot size={17} /> Companion</button>
-          <button onClick={() => setLocation("/faults")}>Faults</button>
-          <button onClick={() => setLocation("/educator")}>Educator</button>
-          <button onClick={startBench}><QrCode size={17} /> Start Bench</button>
-          <button onClick={generateReport}><ClipboardList size={17} /> Report</button>
-          <a className="button-link" href={api.reportPdfUrl(sessionId)} target="_blank" rel="noreferrer">PDF</a>
-          <button className="icon-button" onClick={refresh} aria-label="Refresh"><RefreshCw size={17} /></button>
+          <button onClick={() => setLocation(`/companion?session=${sessionId}`)}><Bot size={17} /> {t.companion}</button>
+          <button onClick={() => setLocation("/faults")}>{t.faults}</button>
+          <button onClick={() => setLocation("/educator")}>{t.educator}</button>
+          <button onClick={startBench}><QrCode size={17} /> {t.startBench}</button>
+          <button onClick={generateReport}><ClipboardList size={17} /> {t.report}</button>
+          <a className="button-link" href={api.reportPdfUrl(sessionId)} target="_blank" rel="noreferrer">{t.pdf}</a>
+          <button className="icon-button" onClick={refresh} aria-label={t.refresh}><RefreshCw size={17} /></button>
         </div>
       </header>
 
@@ -96,21 +96,21 @@ export function Studio({ sessionId }: { sessionId: string }) {
 
       <section className="studio-grid">
         <aside className="panel artifacts-panel">
-          <PanelTitle icon={<FileUp size={17} />} title="Artifacts" detail="manual, netlist, waveforms, bench images" />
+          <PanelTitle icon={<FileUp size={17} />} title={t.artifacts} detail={t.artifactsDetail} />
           <UploadPanel sessionId={sessionId} onDone={refresh} />
           <ArtifactList artifacts={session.artifacts} onRecognize={recognize} />
           {recognizedNetlist && (
             <div className="schematic-preview">
-              <span>Recognized netlist · {recognizedNetlist.detected_topology} · {Math.round(recognizedNetlist.confidence * 100)}%</span>
-              <pre>{recognizedNetlist.netlist || `Need: ${recognizedNetlist.missing.join(", ")}`}</pre>
-              <button onClick={acceptRecognized} disabled={!recognizedNetlist.netlist}>Accept Netlist</button>
+              <span>{t.recognizedNetlist} · {recognizedNetlist.detected_topology} · {Math.round(recognizedNetlist.confidence * 100)}%</span>
+              <pre>{recognizedNetlist.netlist || `${t.need}: ${recognizedNetlist.missing.join(", ")}`}</pre>
+              <button onClick={acceptRecognized} disabled={!recognizedNetlist.netlist}>{t.acceptNetlist}</button>
             </div>
           )}
           <SchematicPreview artifacts={session.artifacts} />
         </aside>
 
         <section className="panel center-panel">
-          <PanelTitle icon={<Gauge size={17} />} title="Session Context" detail="simulation vs bench evidence" />
+          <PanelTitle icon={<Gauge size={17} />} title={t.sessionContext} detail={t.sessionContextDetail} />
           <EvidenceStrip session={session} diagnosis={diagnosis} />
           <WaveformPlot artifacts={session.artifacts} />
           <MeasurementForm sessionId={sessionId} onDone={refresh} />
@@ -121,11 +121,11 @@ export function Studio({ sessionId }: { sessionId: string }) {
         </section>
 
         <aside className="panel agent-panel">
-          <PanelTitle icon={<Stethoscope size={17} />} title="CircuitSage Agent" detail={diagnosis?.gemma_status ?? "ready"} />
-          <label><span>Prompt</span><textarea value={message} onChange={(event) => setMessage(event.target.value)} /></label>
+          <PanelTitle icon={<Stethoscope size={17} />} title={t.circuitSageAgent} detail={diagnosis?.gemma_status ?? t.ready} />
+          <label><span>{t.prompt}</span><textarea value={message} onChange={(event) => setMessage(event.target.value)} /></label>
           <button className="primary full" onClick={runDiagnosis} disabled={busy}>
             <Activity size={18} />
-            Run Diagnosis
+            {t.runDiagnosis}
           </button>
           <DiagnosisCard diagnosis={diagnosis} />
           {qr && <QrPanel qr={qr} />}
@@ -134,7 +134,7 @@ export function Studio({ sessionId }: { sessionId: string }) {
 
       {session.report && (
         <section className="report-band">
-          <h2>Post-Lab Reflection</h2>
+          <h2>{t.postLabReflection}</h2>
           <pre>{session.report}</pre>
         </section>
       )}
@@ -143,6 +143,7 @@ export function Studio({ sessionId }: { sessionId: string }) {
 }
 
 function ArtifactList({ artifacts, onRecognize }: { artifacts: Artifact[]; onRecognize: (artifact: Artifact) => void }) {
+  const { t } = useI18n();
   return (
     <div className="artifact-list">
       {artifacts.map((artifact) => (
@@ -152,7 +153,7 @@ function ArtifactList({ artifacts, onRecognize }: { artifacts: Artifact[]; onRec
             <strong>{artifact.filename}</strong>
           </a>
           {["image", "breadboard"].includes(artifact.kind) && (
-            <button onClick={() => onRecognize(artifact)}>Recognize from photo</button>
+            <button onClick={() => onRecognize(artifact)}>{t.recognizeFromPhoto}</button>
           )}
         </div>
       ))}

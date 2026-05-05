@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { api } from "../lib/api";
+import { useI18n } from "../hooks/useI18n";
 
 type FaultCard = {
   topology: string;
@@ -14,6 +15,7 @@ type FaultCard = {
 
 export function Faults() {
   const [, setLocation] = useLocation();
+  const { t } = useI18n();
   const [faults, setFaults] = useState<FaultCard[]>([]);
   useEffect(() => {
     api.faults().then(setFaults).catch(() => setFaults([]));
@@ -31,7 +33,7 @@ export function Faults() {
 
   return (
     <main className="faults-shell">
-      <header className="topbar"><button className="ghost" onClick={() => setLocation("/")}>CircuitSage</button><h1>Fault Gallery</h1></header>
+      <header className="topbar"><button className="ghost" onClick={() => setLocation("/")}>{t.app}</button><h1>{t.faultGallery}</h1></header>
       {Object.entries(groups).map(([topology, items]) => (
         <section className="fault-group" key={topology}>
           <h2>{topology.replaceAll("_", " ")}</h2>
@@ -44,10 +46,10 @@ export function Faults() {
                   <svg viewBox="0 0 160 54" aria-hidden="true"><path d="M0 18 C20 4 34 4 52 18 S88 32 106 18 140 4 160 18" /><path d="M0 38 H160" /></svg>
                 </div>
                 <p>{fault.why}</p>
-                <small>Needs: {fault.requires_measurements.join(", ") || "general inspection"}</small>
+                <small>{t.needs}: {fault.requires_measurements.join(", ") || t.generalInspection}</small>
                 <small>{fault.verification_test}</small>
                 <small>{fault.fix_recipe}</small>
-                <button onClick={() => tryFault(fault)}>Try this fault</button>
+                <button onClick={() => tryFault(fault)}>{t.tryThisFault}</button>
               </article>
             ))}
           </div>

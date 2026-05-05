@@ -2,14 +2,16 @@ import { useEffect } from "react";
 import { motion } from "framer-motion";
 import type { ToolCall } from "../lib/types";
 import { playTick } from "../lib/sounds";
+import { useI18n } from "../hooks/useI18n";
 
 export function ToolTimeline({ calls }: { calls: ToolCall[] }) {
+  const { t } = useI18n();
   useEffect(() => {
     if (calls.length) playTick();
   }, [calls.length]);
   return (
     <div className="tool-timeline">
-      <h3>Tool Calls</h3>
+      <h3>{t.toolCalls}</h3>
       {calls.map((call, index) => (
         <motion.div
           key={`${call.tool_name}-${index}`}

@@ -3,8 +3,10 @@ import { motion } from "framer-motion";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import type { Diagnosis } from "../lib/types";
 import { playChime } from "../lib/sounds";
+import { useI18n } from "../hooks/useI18n";
 
 export function DiagnosisCard({ diagnosis }: { diagnosis?: Diagnosis }) {
+  const { t } = useI18n();
   useEffect(() => {
     if (diagnosis) playChime();
   }, [diagnosis?.student_explanation]);
@@ -13,7 +15,7 @@ export function DiagnosisCard({ diagnosis }: { diagnosis?: Diagnosis }) {
     return (
       <section className="diagnosis-card empty">
         <AlertTriangle size={18} />
-        <p>Run diagnosis after loading the op-amp demo or uploading bench evidence.</p>
+        <p>{t.diagnosisEmpty}</p>
       </section>
     );
   }
@@ -28,14 +30,14 @@ export function DiagnosisCard({ diagnosis }: { diagnosis?: Diagnosis }) {
     >
       <div className="card-head">
         <CheckCircle2 size={18} />
-        <span>{diagnosis.confidence ?? "medium"} confidence</span>
+        <span>{diagnosis.confidence ?? "medium"} {t.confidence}</span>
         <GemmaStatusChip status={status} />
       </div>
-      <h2>{topFault?.fault ?? "Need more evidence"}</h2>
+      <h2>{topFault?.fault ?? t.needMoreEvidence}</h2>
       <p>{diagnosis.student_explanation}</p>
       {topFault && <ConfidenceBar confidence={topFault.confidence} />}
       <motion.div className="next-measure" animate={{ scale: [1, 1.02, 1] }} transition={{ duration: 0.7 }}>
-        <span>Next measurement</span>
+        <span>{t.nextMeasurement}</span>
         <strong>{diagnosis.next_measurement?.label}</strong>
         <small>{diagnosis.next_measurement?.instruction}</small>
       </motion.div>

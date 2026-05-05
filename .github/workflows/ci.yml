@@ -38,6 +38,8 @@ jobs:
         run: npm --prefix frontend ci
       - name: Build frontend
         run: npm --prefix frontend run build
+      - name: Check locale dictionaries
+        run: python3 scripts/i18n_check.py
       - name: Install desktop dependencies
         run: npm --prefix apps/desktop ci
       - name: Check desktop companion

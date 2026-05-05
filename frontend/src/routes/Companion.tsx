@@ -7,13 +7,13 @@ import { useI18n } from "../hooks/useI18n";
 
 export function Companion() {
   const [, setLocation] = useLocation();
-  const { locale } = useI18n();
+  const { locale, t } = useI18n();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [sessions, setSessions] = useState<LabSession[]>([]);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [lastShot, setLastShot] = useState("");
-  const [question, setQuestion] = useState("Look at my screen and tell me what I should check next.");
+  const [question, setQuestion] = useState(t.companionDefaultQuestion);
   const [appHint, setAppHint] = useState("auto");
   const [sessionId, setSessionId] = useState(new URLSearchParams(window.location.search).get("session") ?? "");
   const [saveSnapshot, setSaveSnapshot] = useState(false);
@@ -42,7 +42,7 @@ export function Companion() {
       }
       media.getVideoTracks()[0]?.addEventListener("ended", () => setStream(null));
     } catch (exc) {
-      setError(exc instanceof Error ? exc.message : "Screen capture permission was denied.");
+      setError(exc instanceof Error ? exc.message : t.screenCaptureDenied);
     }
   }
 
@@ -67,7 +67,7 @@ export function Companion() {
       if (shot) setLastShot(shot);
       setAnalysis(await api.companionAnalyze({ question, image_data_url: shot || undefined, app_hint: appHint, session_id: sessionId || undefined, save_snapshot: saveSnapshot, lang: locale }));
     } catch (exc) {
-      setError(exc instanceof Error ? exc.message : "Companion analysis failed.");
+      setError(exc instanceof Error ? exc.message : t.companionAnalysisFailed);
     } finally {
       setBusy(false);
     }
@@ -93,12 +93,12 @@ export function Companion() {
     <main className="companion-shell">
       <section className="companion-stage">
         <header className="companion-top">
-          <button className="ghost" onClick={() => setLocation("/")}>CircuitSage</button>
+          <button className="ghost" onClick={() => setLocation("/")}>{t.app}</button>
           <div>
-            <div className="eyebrow"><Bot size={16} /> Companion Mode</div>
-            <h1>Put it on, share your lab window, ask anytime.</h1>
+            <div className="eyebrow"><Bot size={16} /> {t.companion}</div>
+            <h1>{t.companionHero}</h1>
           </div>
-          <button onClick={() => window.open("/companion", "CircuitSageCompanion", "width=420,height=720")}><ExternalLink size={17} /> Pop Out</button>
+          <button onClick={() => window.open("/companion", "CircuitSageCompanion", "width=420,height=720")}><ExternalLink size={17} /> {t.popOut}</button>
         </header>
 
         <div className="companion-grid">
@@ -108,36 +108,36 @@ export function Companion() {
               <div>
                 <button className={watching ? "" : "primary"} onClick={watching ? stopWatching : startWatching}>
                   {watching ? <EyeOff size={17} /> : <MonitorUp size={17} />}
-                  {watching ? "Stop" : "Share Screen"}
+                  {watching ? t.stop : t.shareScreen}
                 </button>
-                <button onClick={() => setLastShot(captureFrame())} disabled={!watching}><Camera size={17} /> Snapshot</button>
+                <button onClick={() => setLastShot(captureFrame())} disabled={!watching}><Camera size={17} /> {t.snapshot}</button>
               </div>
             </div>
             <div className="screen-preview">
               <video ref={videoRef} muted playsInline />
-              {!watching && <div className="screen-empty"><Eye size={28} /> Waiting for screen permission</div>}
+              {!watching && <div className="screen-empty"><Eye size={28} /> {t.waitingForScreenPermission}</div>}
             </div>
             <canvas ref={canvasRef} hidden />
           </div>
 
           <aside className="companion-card">
             <div className="pet-orb"><ScanEye size={34} /></div>
-            <h2>CircuitSage Buddy</h2>
-            <p className="muted">Watches the shared window while enabled. Works with Tinkercad, LTspice, MATLAB, plots, manuals, and bench screenshots.</p>
-            <label><span>Workspace</span><select value={appHint} onChange={(event) => setAppHint(event.target.value)}><option value="auto">Auto detect</option><option value="tinkercad">Tinkercad</option><option value="ltspice">LTspice</option><option value="matlab">MATLAB / Simulink</option><option value="electronics_workspace">General electronics</option></select></label>
-            <label><span>Attach to session</span><select value={sessionId} onChange={(event) => setSessionId(event.target.value)}><option value="">No session</option>{sessions.map((session) => <option value={session.id} key={session.id}>{session.title}</option>)}</select></label>
-            <label><span>Question</span><textarea value={question} onChange={(event) => setQuestion(event.target.value)} /></label>
+            <h2>{t.circuitSageBuddy}</h2>
+            <p className="muted">{t.companionDescription}</p>
+            <label><span>{t.workspace}</span><select value={appHint} onChange={(event) => setAppHint(event.target.value)}><option value="auto">{t.autoDetect}</option><option value="tinkercad">Tinkercad</option><option value="ltspice">LTspice</option><option value="matlab">MATLAB / Simulink</option><option value="electronics_workspace">{t.generalElectronics}</option></select></label>
+            <label><span>{t.attachToSession}</span><select value={sessionId} onChange={(event) => setSessionId(event.target.value)}><option value="">{t.noSession}</option>{sessions.map((session) => <option value={session.id} key={session.id}>{session.title}</option>)}</select></label>
+            <label><span>{t.question}</span><textarea value={question} onChange={(event) => setQuestion(event.target.value)} /></label>
             <div className="toggle-row">
-              <label><input type="checkbox" checked={autoAnalyze} onChange={(event) => setAutoAnalyze(event.target.checked)} /> Auto analyze</label>
-              <label><input type="checkbox" checked={saveSnapshot} onChange={(event) => setSaveSnapshot(event.target.checked)} /> Save snapshots</label>
+              <label><input type="checkbox" checked={autoAnalyze} onChange={(event) => setAutoAnalyze(event.target.checked)} /> {t.autoAnalyze}</label>
+              <label><input type="checkbox" checked={saveSnapshot} onChange={(event) => setSaveSnapshot(event.target.checked)} /> {t.saveSnapshots}</label>
             </div>
-            <button className="primary full" onClick={analyzeCurrent} disabled={busy}><Send size={18} /> Analyze Current Screen</button>
+            <button className="primary full" onClick={analyzeCurrent} disabled={busy}><Send size={18} /> {t.analyzeCurrentScreen}</button>
             {error && <p className="error-text">{error}</p>}
           </aside>
         </div>
       </section>
       <section className="companion-output">
-        <div className="snapshot-card"><h2>Latest Frame</h2>{lastShot ? <img src={lastShot} alt="Latest captured screen" /> : <p className="muted">No frame captured yet.</p>}</div>
+        <div className="snapshot-card"><h2>{t.latestFrame}</h2>{lastShot ? <img src={lastShot} alt={t.latestCapturedScreen} /> : <p className="muted">{t.noFrameCaptured}</p>}</div>
         <CompanionResult analysis={analysis} />
       </section>
     </main>
@@ -145,14 +145,15 @@ export function Companion() {
 }
 
 function CompanionResult({ analysis }: { analysis: CompanionAnalysis | null }) {
-  if (!analysis) return <section className="analysis-card"><h2>Live Help</h2><p className="muted">Share your screen, open Tinkercad/LTspice/MATLAB, then ask what to check.</p></section>;
+  const { t } = useI18n();
+  if (!analysis) return <section className="analysis-card"><h2>{t.liveHelp}</h2><p className="muted">{t.companionEmptyHelp}</p></section>;
   return (
     <section className="analysis-card">
-      <div className="card-head"><Bot size={18} /><span>{analysis.mode ?? "analysis"} · {analysis.confidence ?? "unknown"} confidence</span></div>
+      <div className="card-head"><Bot size={18} /><span>{analysis.mode ?? "analysis"} · {analysis.confidence ?? "unknown"} {t.confidence}</span></div>
       <h2>{analysis.workspace}</h2>
       <p>{analysis.visible_context}</p>
       <strong>{analysis.answer}</strong>
-      <div className="next-measure"><span>Next actions</span><ul>{(analysis.next_actions ?? []).map((action) => <li key={action}>{action}</li>)}</ul></div>
+      <div className="next-measure"><span>{t.nextActions}</span><ul>{(analysis.next_actions ?? []).map((action) => <li key={action}>{action}</li>)}</ul></div>
       {analysis.gemma_error && <small className="error-text">{analysis.gemma_error}</small>}
       {analysis.raw && <pre>{analysis.raw}</pre>}
     </section>

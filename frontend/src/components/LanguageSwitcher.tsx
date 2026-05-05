@@ -12,7 +12,7 @@ export function LanguageSwitcher() {
   const { locale, setLocale, t } = useI18n();
   const { highContrast, largeFont, sound, setHighContrast, setLargeFont, setSound } = useA11yPrefs();
   return (
-    <div className="accessibility-bar" aria-label="Accessibility settings">
+    <div className="accessibility-bar" aria-label={t.accessibilitySettings}>
       <label>
         <span>{t.language}</span>
         <select value={locale} onChange={(event) => setLocale(event.target.value as Locale)}>

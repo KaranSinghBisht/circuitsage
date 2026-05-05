@@ -7,25 +7,25 @@ import { LanguageSwitcher } from "../components/LanguageSwitcher";
 import { useI18n } from "../hooks/useI18n";
 
 const DEMO_TILES = [
-  { slug: "op-amp", title: "Inverting Op-Amp", detail: "saturated output, floating reference input" },
-  { slug: "rc-lowpass", title: "RC Low-Pass", detail: "unexpected attenuation below cutoff" },
-  { slug: "voltage-divider", title: "Voltage Divider", detail: "loaded output pulled below expectation" },
-  { slug: "bjt-common-emitter", title: "BJT Common Emitter", detail: "collector biased into saturation" },
-  { slug: "op-amp-noninverting", title: "Non-Inverting Op-Amp", detail: "unity gain instead of configured gain" },
-  { slug: "active-highpass", title: "Active High-Pass", detail: "cutoff shifted by capacitor or bias fault" },
-  { slug: "integrator", title: "Op-Amp Integrator", detail: "ramp rails from feedback or leak path fault" },
-  { slug: "schmitt-trigger", title: "Schmitt Trigger", detail: "missing hysteresis and threshold chatter" },
-  { slug: "timer-555-astable", title: "555 Astable", detail: "timing node or discharge pin fault" },
-  { slug: "nmos-low-side", title: "NMOS Switch", detail: "gate drive and source reference fault" },
-  { slug: "instrumentation-amplifier", title: "Instrumentation Amp", detail: "gain resistor or common-mode issue" },
-];
+  { slug: "op-amp", titleKey: "demoOpAmpTitle", detailKey: "demoOpAmpDetail" },
+  { slug: "rc-lowpass", titleKey: "demoRcTitle", detailKey: "demoRcDetail" },
+  { slug: "voltage-divider", titleKey: "demoDividerTitle", detailKey: "demoDividerDetail" },
+  { slug: "bjt-common-emitter", titleKey: "demoBjtTitle", detailKey: "demoBjtDetail" },
+  { slug: "op-amp-noninverting", titleKey: "demoNonInvTitle", detailKey: "demoNonInvDetail" },
+  { slug: "active-highpass", titleKey: "demoHighpassTitle", detailKey: "demoHighpassDetail" },
+  { slug: "integrator", titleKey: "demoIntegratorTitle", detailKey: "demoIntegratorDetail" },
+  { slug: "schmitt-trigger", titleKey: "demoSchmittTitle", detailKey: "demoSchmittDetail" },
+  { slug: "timer-555-astable", titleKey: "demoTimerTitle", detailKey: "demoTimerDetail" },
+  { slug: "nmos-low-side", titleKey: "demoNmosTitle", detailKey: "demoNmosDetail" },
+  { slug: "instrumentation-amplifier", titleKey: "demoInstrumentationTitle", detailKey: "demoInstrumentationDetail" },
+] as const;
 
 export function Home() {
   const [, setLocation] = useLocation();
   const { t } = useI18n();
   const [sessions, setSessions] = useState<LabSession[]>([]);
   const [loading, setLoading] = useState(false);
-  const [title, setTitle] = useState("Inverting Op-Amp Amplifier");
+  const [title, setTitle] = useState(t.defaultSessionTitle);
 
   useEffect(() => {
     api.sessions().then(setSessions).catch(console.error);
@@ -58,7 +58,7 @@ export function Home() {
         <div>
           <div className="eyebrow"><CircuitBoard size={16} /> {t.app}</div>
           <h1>{t.tagline}</h1>
-          <p>A local-first Gemma lab partner that follows students from simulation to oscilloscope and asks for the next measurement.</p>
+          <p>{t.homePitch}</p>
         </div>
         <div className="hero-actions">
           <button onClick={() => setLocation("/companion")}><Bot size={18} /> {t.openCompanion}</button>
@@ -67,7 +67,7 @@ export function Home() {
             {t.loadDemo}
           </button>
           <div className="create-row">
-            <input value={title} onChange={(event) => setTitle(event.target.value)} aria-label="Session title" />
+            <input value={title} onChange={(event) => setTitle(event.target.value)} aria-label={t.sessionTitle} />
             <button onClick={create} disabled={loading}><Plus size={18} /> {t.newSession}</button>
           </div>
         </div>
@@ -77,8 +77,8 @@ export function Home() {
         {DEMO_TILES.map((demo) => (
           <button className="demo-tile" key={demo.slug} onClick={() => seed(demo.slug)} disabled={loading}>
             <span>{t.demo}</span>
-            <strong>{demo.title}</strong>
-            <small>{demo.detail}</small>
+            <strong>{t[demo.titleKey]}</strong>
+            <small>{t[demo.detailKey]}</small>
           </button>
         ))}
       </section>

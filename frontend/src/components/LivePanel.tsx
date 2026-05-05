@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import type { StreamSnapshot } from "../lib/types";
+import { useI18n } from "../hooks/useI18n";
 
 export function LivePanel({ sessionId }: { sessionId: string }) {
+  const { t } = useI18n();
   const [snapshot, setSnapshot] = useState<StreamSnapshot | null>(null);
   useEffect(() => {
     const refresh = () => api.streamSnapshot(sessionId).then(setSnapshot).catch(() => undefined);
@@ -13,8 +15,8 @@ export function LivePanel({ sessionId }: { sessionId: string }) {
   const labels = Object.entries(snapshot?.labels ?? {});
   return (
     <div className="live-panel">
-      <h3>Live Scope</h3>
-      {labels.length === 0 && <p className="muted">No streaming measurements yet.</p>}
+      <h3>{t.liveScope}</h3>
+      {labels.length === 0 && <p className="muted">{t.noStreamingMeasurements}</p>}
       {labels.map(([label, samples]) => <Sparkline key={label} label={label} samples={samples} />)}
       {(snapshot?.events ?? []).map((event) => <p className="error-text" key={`${event.label}-${event.stddev}`}>{event.message}</p>)}
     </div>

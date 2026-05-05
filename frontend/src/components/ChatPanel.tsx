@@ -4,8 +4,8 @@ import { useChat } from "../hooks/useChat";
 import { useI18n } from "../hooks/useI18n";
 
 export function ChatPanel({ sessionId, onDone }: { sessionId: string; onDone: () => void }) {
-  const [question, setQuestion] = useState("What should I measure next?");
-  const { locale } = useI18n();
+  const { locale, t } = useI18n();
+  const [question, setQuestion] = useState(t.defaultBenchQuestion);
   const { busy, send } = useChat(sessionId, "bench");
   async function ask() {
     await send(question, locale);
@@ -14,12 +14,12 @@ export function ChatPanel({ sessionId, onDone }: { sessionId: string; onDone: ()
   return (
     <div className="chat-panel">
       <label>
-        <span>Question</span>
+        <span>{t.question}</span>
         <textarea value={question} onChange={(event) => setQuestion(event.target.value)} />
       </label>
       <button className="primary full" onClick={ask} disabled={busy}>
         {busy ? <Loader2 className="spin" size={18} /> : <Stethoscope size={18} />}
-        Ask What To Measure Next
+        {t.askNextMeasurement}
       </button>
     </div>
   );
