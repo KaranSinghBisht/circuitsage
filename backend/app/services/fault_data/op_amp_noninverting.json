@@ -1,0 +1,36 @@
+{
+  "label": "Non-inverting op-amp amplifier",
+  "faults": [
+    {
+      "id": "rg_open",
+      "name": "Gain-setting resistor to ground is open",
+      "category": "feedback",
+      "why": "If Rg is not connected, the amplifier can collapse toward unity gain instead of the expected non-inverting gain.",
+      "base_confidence": 0.6,
+      "requires_measurements": ["rg_continuity", "closed_loop_gain"],
+      "verification_test": "Power off and check continuity from the inverting input through Rg to ground.",
+      "fix_recipe": "Reconnect Rg to ground and retest the output/input amplitude ratio.",
+      "signature": {"measurement": "closed_loop_gain", "operator": "lt", "value": 2.0}
+    },
+    {
+      "id": "feedback_wrong_value",
+      "name": "Feedback resistor value is wrong",
+      "category": "feedback",
+      "why": "A swapped Rf or Rg changes the expected gain while the circuit still looks qualitatively correct.",
+      "base_confidence": 0.42,
+      "requires_measurements": ["rf_value", "rg_value"],
+      "verification_test": "Power off and measure Rf and Rg directly.",
+      "fix_recipe": "Replace the incorrect resistor and recompute gain as 1 + Rf/Rg."
+    },
+    {
+      "id": "input_reference_missing",
+      "name": "Input source reference is not common with circuit ground",
+      "category": "common_ground",
+      "why": "A floating source reference can make the non-inverting input move outside the valid common-mode range.",
+      "base_confidence": 0.34,
+      "requires_measurements": ["source_ground_continuity"],
+      "verification_test": "Check continuity between source ground and circuit ground with power off.",
+      "fix_recipe": "Tie the signal source reference to circuit ground."
+    }
+  ]
+}

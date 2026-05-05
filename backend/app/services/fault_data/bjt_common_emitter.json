@@ -1,0 +1,36 @@
+{
+  "label": "BJT common-emitter amplifier",
+  "faults": [
+    {
+      "id": "incorrect_base_bias",
+      "name": "Incorrect base bias drives the transistor into saturation",
+      "category": "bias",
+      "why": "Too much base bias current can pull the collector close to the emitter and remove linear gain.",
+      "base_confidence": 0.58,
+      "requires_measurements": ["collector_voltage", "base_voltage"],
+      "verification_test": "Measure collector, base, and emitter DC voltages before applying AC input.",
+      "fix_recipe": "Resize the bias divider or emitter resistor so the collector sits near mid-supply.",
+      "signature": {"measurement": "collector_voltage", "operator": "lt", "value": 1.0}
+    },
+    {
+      "id": "emitter_resistor_open",
+      "name": "Emitter resistor or bypass path is open",
+      "category": "wiring",
+      "why": "An open emitter path changes DC bias and can stop the amplifier from operating in the active region.",
+      "base_confidence": 0.36,
+      "requires_measurements": ["emitter_voltage", "emitter_continuity"],
+      "verification_test": "Measure emitter voltage and check continuity through RE.",
+      "fix_recipe": "Reconnect the emitter resistor and verify the DC operating point."
+    },
+    {
+      "id": "collector_load_open",
+      "name": "Collector resistor path is open",
+      "category": "wiring",
+      "why": "Without a collector load path, the output node cannot develop the expected voltage swing.",
+      "base_confidence": 0.34,
+      "requires_measurements": ["collector_resistor_continuity"],
+      "verification_test": "Power off and check continuity from VCC through RC to the collector.",
+      "fix_recipe": "Reconnect RC to VCC and the collector node."
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "label": "Inverting op-amp amplifier",
+  "faults": [
+    {
+      "id": "floating_noninv_input",
+      "name": "Floating or incorrectly biased non-inverting input",
+      "category": "reference_input",
+      "why": "A missing 0 V reference on the non-inverting input can force the output into rail saturation even when the feedback ratio is correct.",
+      "base_confidence": 0.58,
+      "requires_measurements": ["non_inverting_input_voltage"],
+      "verification_test": "Measure the non-inverting input with respect to circuit ground.",
+      "fix_recipe": "Power off, tie the non-inverting input to circuit ground, power on, and retest Vout.",
+      "signature": {"measurement": "non_inverting_input_voltage", "operator": "abs_gt", "value": 0.5}
+    },
+    {
+      "id": "missing_feedback",
+      "name": "Open or wrong feedback path",
+      "category": "feedback",
+      "why": "Without negative feedback, the op-amp goes open-loop and saturates.",
+      "base_confidence": 0.55,
+      "requires_measurements": ["feedback_continuity"],
+      "verification_test": "Power off and ohm-meter Rf between Vout and the inverting input node.",
+      "fix_recipe": "Reconnect Rf from Vout to the inverting node and verify resistor value."
+    },
+    {
+      "id": "rail_imbalance",
+      "name": "Power rail or ground problem",
+      "category": "power_rails",
+      "why": "A missing or unequal rail can clamp the output or move the apparent signal reference.",
+      "base_confidence": 0.35,
+      "requires_measurements": ["v_supply_pos", "v_supply_neg", "v_ground"],
+      "verification_test": "Measure both rails with respect to circuit ground.",
+      "fix_recipe": "Restore symmetric rails and a shared ground before changing signal components."
+    }
+  ]
+}

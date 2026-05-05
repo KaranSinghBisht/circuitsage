@@ -1,0 +1,35 @@
+{
+  "label": "Full-wave bridge rectifier",
+  "faults": [
+    {
+      "id": "diode_reversed",
+      "name": "One bridge diode is reversed",
+      "category": "polarity",
+      "why": "A reversed diode breaks one conduction path and creates half-wave or clipped output.",
+      "base_confidence": 0.52,
+      "requires_measurements": ["diode_orientation"],
+      "verification_test": "Check each diode orientation against the bridge diagram.",
+      "fix_recipe": "Rotate the incorrect diode and retest the rectified output."
+    },
+    {
+      "id": "missing_bridge_ground",
+      "name": "Bridge negative node is not tied to circuit reference",
+      "category": "ground",
+      "why": "A floating bridge output makes the load voltage appear unstable or wrong.",
+      "base_confidence": 0.38,
+      "requires_measurements": ["bridge_ground_continuity"],
+      "verification_test": "Check continuity from the bridge negative output to the load return.",
+      "fix_recipe": "Reconnect bridge negative to the load return/reference node."
+    },
+    {
+      "id": "load_too_heavy",
+      "name": "Load resistance is too low for the source and diodes",
+      "category": "loading",
+      "why": "A heavy load can collapse the rectified output and overheat small-signal diodes.",
+      "base_confidence": 0.34,
+      "requires_measurements": ["load_resistance", "vout_peak"],
+      "verification_test": "Measure load resistance and peak output under load.",
+      "fix_recipe": "Use the intended load resistor and verify diode current limits."
+    }
+  ]
+}

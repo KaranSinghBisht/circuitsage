@@ -1,0 +1,36 @@
+{
+  "label": "RC low-pass filter",
+  "faults": [
+    {
+      "id": "wrong_capacitor_value",
+      "name": "Capacitor value is wrong",
+      "category": "component_value",
+      "why": "A capacitor that is too large moves the cutoff lower and causes unexpected attenuation at frequencies that should pass.",
+      "base_confidence": 0.57,
+      "requires_measurements": ["capacitance_value", "output_gain_at_test_frequency"],
+      "verification_test": "Measure or read the capacitor marking, then compare gain at a known frequency below cutoff.",
+      "fix_recipe": "Install the intended capacitor value and recompute fc = 1/(2*pi*R*C).",
+      "signature": {"measurement": "output_gain_at_test_frequency", "operator": "lt", "value": 0.8}
+    },
+    {
+      "id": "input_output_swapped",
+      "name": "Input and output nodes are swapped",
+      "category": "wiring",
+      "why": "Probing the resistor side or driving the capacitor node can make the filter response look inverted or attenuated.",
+      "base_confidence": 0.36,
+      "requires_measurements": ["node_probe_location"],
+      "verification_test": "Confirm Vin is applied before R and Vout is measured at the R-C junction.",
+      "fix_recipe": "Move the source and probe to the documented nodes."
+    },
+    {
+      "id": "capacitor_ground_open",
+      "name": "Capacitor ground leg is open",
+      "category": "ground",
+      "why": "An open capacitor return removes the intended shunt path and makes the measured response inconsistent.",
+      "base_confidence": 0.32,
+      "requires_measurements": ["capacitor_ground_continuity"],
+      "verification_test": "Power off and check continuity from capacitor ground leg to circuit ground.",
+      "fix_recipe": "Reconnect the capacitor return to the shared ground node."
+    }
+  ]
+}

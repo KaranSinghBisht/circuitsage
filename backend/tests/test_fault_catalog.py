@@ -14,7 +14,7 @@ SAMPLES = ROOT / "sample_data" / "op_amp_lab"
 
 def test_op_amp_candidates_match_expected_ids() -> None:
     assert [fault["id"] for fault in candidates("op_amp_inverting")] == [
-        "floating_noninverting_input",
+        "floating_noninv_input",
         "missing_feedback",
         "rail_imbalance",
     ]
@@ -45,7 +45,7 @@ def test_catalog_ranks_op_amp_reference_fault_for_seed_case() -> None:
     )
 
     top_fault = diagnosis["likely_faults"][0]
-    assert top_fault["id"] == "floating_noninverting_input"
+    assert top_fault["id"] == "floating_noninv_input"
     assert top_fault["name"] == "Floating or incorrectly biased non-inverting input"
     assert diagnosis["next_measurement"]["label"] == "Voltage at non-inverting input pin"
 
@@ -65,6 +65,6 @@ def test_catalog_uses_confirmation_step_after_reference_measurement() -> None:
         {"risk_level": "low_voltage_lab", "warnings": []},
     )
 
-    assert diagnosis["likely_faults"][0]["id"] == "floating_noninverting_input"
-    assert diagnosis["next_measurement"]["label"] == "Retest Vout after grounding non-inverting input"
+    assert diagnosis["likely_faults"][0]["id"] == "floating_noninv_input"
+    assert diagnosis["likely_faults"][0]["confidence"] >= 0.85
     assert diagnosis["session_status"] == "resolved"

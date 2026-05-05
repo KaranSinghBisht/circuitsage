@@ -1,0 +1,36 @@
+{
+  "label": "Voltage divider",
+  "faults": [
+    {
+      "id": "load_resistance_too_low",
+      "name": "Load resistance is comparable to the lower divider resistor",
+      "category": "loading",
+      "why": "A low-resistance load appears in parallel with R2 and pulls the divider output below the no-load expectation.",
+      "base_confidence": 0.6,
+      "requires_measurements": ["loaded_vout", "load_resistance"],
+      "verification_test": "Measure Vout with and without the load connected.",
+      "fix_recipe": "Use a buffer, increase divider current, or raise the load resistance.",
+      "signature": {"measurement": "loaded_vout", "operator": "lt", "value": 3.0}
+    },
+    {
+      "id": "wrong_resistor_value",
+      "name": "One divider resistor has the wrong value",
+      "category": "component_value",
+      "why": "A swapped decade or wrong color-code band shifts the divider ratio.",
+      "base_confidence": 0.38,
+      "requires_measurements": ["r1_value", "r2_value"],
+      "verification_test": "Power off and measure R1 and R2 directly.",
+      "fix_recipe": "Replace the incorrect resistor and recompute Vout = Vin*R2/(R1+R2)."
+    },
+    {
+      "id": "divider_ground_open",
+      "name": "Lower resistor ground is open",
+      "category": "ground",
+      "why": "If R2 does not return to ground, the tap voltage is undefined under load.",
+      "base_confidence": 0.34,
+      "requires_measurements": ["r2_ground_continuity"],
+      "verification_test": "Check continuity from the lower resistor to ground.",
+      "fix_recipe": "Reconnect R2 to the common reference node."
+    }
+  ]
+}
