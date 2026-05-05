@@ -38,7 +38,12 @@ export function Bench({ sessionId }: { sessionId: string }) {
         </div>
         <div className="panel">
           <PanelTitle icon={<MessageSquareText size={17} />} title={t.askCircuitSage} detail={t.benchGuidance} />
-          <ChatPanel sessionId={sessionId} onDone={refresh} />
+          <ChatPanel
+            sessionId={sessionId}
+            onDone={refresh}
+            gemmaStatus={session.latest_diagnosis?.gemma_status}
+            safetyRisk={session.latest_diagnosis?.safety?.risk_level}
+          />
         </div>
         <DiagnosisCard diagnosis={session.latest_diagnosis ?? undefined} />
       </section>
