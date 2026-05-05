@@ -151,6 +151,36 @@
       "type": "file"
     },
     {
+      "path": "backend/app/services/agent_orchestrator.py",
+      "accessCount": 2,
+      "lastAccessed": 1777997683513,
+      "type": "file"
+    },
+    {
+      "path": "backend/app/tools/parse_netlist.py",
+      "accessCount": 2,
+      "lastAccessed": 1777997685320,
+      "type": "file"
+    },
+    {
+      "path": "backend/app/tools/rag.py",
+      "accessCount": 2,
+      "lastAccessed": 1777997685694,
+      "type": "file"
+    },
+    {
+      "path": "backend/app/services/ollama_client.py",
+      "accessCount": 2,
+      "lastAccessed": 1777997716980,
+      "type": "file"
+    },
+    {
+      "path": "backend/app/main.py",
+      "accessCount": 2,
+      "lastAccessed": 1777997717638,
+      "type": "file"
+    },
+    {
       "path": "README.md",
       "accessCount": 1,
       "lastAccessed": 1777982925366,
@@ -166,24 +196,6 @@
       "path": "package.json",
       "accessCount": 1,
       "lastAccessed": 1777982926449,
-      "type": "file"
-    },
-    {
-      "path": "backend/app/main.py",
-      "accessCount": 1,
-      "lastAccessed": 1777982931158,
-      "type": "file"
-    },
-    {
-      "path": "backend/app/services/agent_orchestrator.py",
-      "accessCount": 1,
-      "lastAccessed": 1777982931925,
-      "type": "file"
-    },
-    {
-      "path": "backend/app/services/ollama_client.py",
-      "accessCount": 1,
-      "lastAccessed": 1777982932369,
       "type": "file"
     },
     {
@@ -211,12 +223,6 @@
       "type": "file"
     },
     {
-      "path": "backend/app/tools/parse_netlist.py",
-      "accessCount": 1,
-      "lastAccessed": 1777982943033,
-      "type": "file"
-    },
-    {
       "path": "backend/app/tools/waveform_analysis.py",
       "accessCount": 1,
       "lastAccessed": 1777982943272,
@@ -232,12 +238,6 @@
       "path": "backend/app/tools/safety_check.py",
       "accessCount": 1,
       "lastAccessed": 1777982944314,
-      "type": "file"
-    },
-    {
-      "path": "backend/app/tools/rag.py",
-      "accessCount": 1,
-      "lastAccessed": 1777982944640,
       "type": "file"
     },
     {
@@ -358,6 +358,66 @@
       "path": "docs/WINNING_BUILD_PLAN.md",
       "accessCount": 1,
       "lastAccessed": 1777983758867,
+      "type": "file"
+    },
+    {
+      "path": "docs/BLOCKERS.md",
+      "accessCount": 1,
+      "lastAccessed": 1777997665069,
+      "type": "file"
+    },
+    {
+      "path": "backend/app/services/fault_catalog.py",
+      "accessCount": 1,
+      "lastAccessed": 1777997684059,
+      "type": "file"
+    },
+    {
+      "path": "backend/app/services/vectorstore.py",
+      "accessCount": 1,
+      "lastAccessed": 1777997684420,
+      "type": "file"
+    },
+    {
+      "path": "backend/app/tools/vision.py",
+      "accessCount": 1,
+      "lastAccessed": 1777997684528,
+      "type": "file"
+    },
+    {
+      "path": "backend/app/services/embedder.py",
+      "accessCount": 1,
+      "lastAccessed": 1777997686083,
+      "type": "file"
+    },
+    {
+      "path": "train/unsloth_lora.ipynb",
+      "accessCount": 1,
+      "lastAccessed": 1777997722372,
+      "type": "file"
+    },
+    {
+      "path": "scripts/install.sh",
+      "accessCount": 1,
+      "lastAccessed": 1777997723286,
+      "type": "file"
+    },
+    {
+      "path": "Makefile",
+      "accessCount": 1,
+      "lastAccessed": 1777997723501,
+      "type": "file"
+    },
+    {
+      "path": "docs/PHASE_3_5_PATCH.md",
+      "accessCount": 1,
+      "lastAccessed": 1777998178137,
+      "type": "file"
+    },
+    {
+      "path": "docs/WINNING_FORWARD_PLAN.md",
+      "accessCount": 1,
+      "lastAccessed": 1777998414221,
       "type": "file"
     }
   ],
