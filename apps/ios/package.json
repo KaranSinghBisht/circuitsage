@@ -3,9 +3,6 @@
   "version": "0.1.0",
   "private": true,
   "main": "expo/AppEntry.js",
-  "circuitsage": {
-    "reactNativeVersionNote": "react-native 0.83.6 is a published version and is the Expo SDK 55-compatible pin used by expo-doctor in this workspace."
-  },
   "scripts": {
     "start": "expo start",
     "ios": "expo start --ios",
@@ -13,9 +10,9 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",
-    "expo": "~55.0.20",
-    "expo-image-picker": "~55.0.19",
-    "expo-status-bar": "~55.0.5",
+    "expo": "~55.0.23",
+    "expo-image-picker": "~55.0.20",
+    "expo-status-bar": "~55.0.6",
     "react": "19.2.0",
     "react-native": "0.83.6"
   },
