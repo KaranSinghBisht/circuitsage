@@ -5,6 +5,18 @@ Ask for the next useful measurement before guessing, show evidence, admit uncert
 Return structured JSON when requested."""
 
 
+AGENTIC_SYSTEM_PROMPT = """You are CircuitSage running a bounded circuit diagnosis loop.
+
+Detected topology: {topology}
+Expected behavior:
+{expected_behavior}
+
+Top deterministic fault candidates:
+{fault_candidates}
+
+Use tool calls only for the next useful lab action. Prefer asking for one measurement over broad speculation."""
+
+
 STRUCTURED_DIAGNOSIS_PROMPT = """Given the following lab context, produce a structured diagnosis.
 
 Return valid JSON matching this schema:

@@ -54,7 +54,7 @@ async def test_chat_success_path(fake_async_client: type[FakeAsyncClient]) -> No
 
     result = await OllamaClient("http://ollama.local", "gemma3:4b").chat([{"role": "user", "content": "hi"}])
 
-    assert result == {"content": "ok", "raw_status": 200, "fallback": False}
+    assert result == {"content": "ok", "tool_calls": [], "raw_status": 200, "fallback": False}
     assert fake_async_client.calls[0]["json"]["model"] == "gemma3:4b"
 
 

@@ -11,12 +11,19 @@ class OllamaClient:
         self.base_url = base_url.rstrip("/")
         self.model = model
 
-    async def chat(self, messages: list[dict[str, Any]], format_json: bool = False) -> dict[str, Any]:
+    async def chat(
+        self,
+        messages: list[dict[str, Any]],
+        format_json: bool = False,
+        tools: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
         payload: dict[str, Any] = {
             "model": self.model,
             "messages": messages,
             "stream": False,
         }
+        if tools:
+            payload["tools"] = tools
         if format_json:
             payload["format"] = "json"
 
@@ -31,6 +38,7 @@ class OllamaClient:
                     data = response.json()
                 return {
                     "content": data.get("message", {}).get("content", ""),
+                    "tool_calls": data.get("message", {}).get("tool_calls", []),
                     "raw_status": response.status_code,
                     "fallback": fallback,
                 }

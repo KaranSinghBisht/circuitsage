@@ -16,7 +16,51 @@ from ..tools.safety_check import safety_check
 from ..tools.waveform_analysis import analyze_waveform_csv
 from .fault_catalog import build_catalog_diagnosis
 from .ollama_client import OllamaClient, parse_json_response
-from .prompt_templates import STRUCTURED_DIAGNOSIS_PROMPT, SYSTEM_PROMPT
+from .prompt_templates import AGENTIC_SYSTEM_PROMPT, STRUCTURED_DIAGNOSIS_PROMPT
+
+
+TOOL_SCHEMAS: list[dict[str, Any]] = [
+    {
+        "type": "function",
+        "function": {
+            "name": "compute_expected_value",
+            "description": "Compute an expected circuit value from parsed topology data.",
+            "parameters": {"type": "object", "properties": {"quantity": {"type": "string"}}, "required": ["quantity"]},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "request_measurement",
+            "description": "Ask the student for one concrete next bench measurement.",
+            "parameters": {"type": "object", "properties": {"label": {"type": "string"}}, "required": ["label"]},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "request_image",
+            "description": "Ask for a photo or screenshot of a specific circuit area.",
+            "parameters": {"type": "object", "properties": {"target": {"type": "string"}}, "required": ["target"]},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "cite_textbook",
+            "description": "Cite a relevant manual or textbook snippet already retrieved.",
+            "parameters": {"type": "object", "properties": {"topic": {"type": "string"}}, "required": ["topic"]},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "verify_with_simulation",
+            "description": "Describe a simulation check that would verify the suspected fault.",
+            "parameters": {"type": "object", "properties": {"check": {"type": "string"}}, "required": ["check"]},
+        },
+    },
+]
 
 
 def _load_session_context(session_id: str) -> tuple[dict[str, Any], list[dict[str, Any]], list[dict[str, Any]]]:
@@ -53,6 +97,37 @@ def _find_artifact(artifacts: list[dict[str, Any]], kind: str, contains: str | N
         if exact:
             return exact[-1]
     return candidates[-1] if candidates else None
+
+
+def _stub_tool_output(name: str, arguments: dict[str, Any], fallback: dict[str, Any]) -> dict[str, Any]:
+    arguments = arguments if isinstance(arguments, dict) else {}
+    if name == "request_measurement":
+        return {"requested": arguments or fallback.get("next_measurement", {}), "stub": True}
+    if name == "compute_expected_value":
+        return {"expected_behavior": fallback.get("expected_behavior", {}), "stub": True}
+    if name == "request_image":
+        return {"requested": arguments.get("target", "current circuit or waveform"), "stub": True}
+    if name == "cite_textbook":
+        return {"topic": arguments.get("topic", "current topology"), "stub": True}
+    if name == "verify_with_simulation":
+        return {"check": arguments.get("check", "compare expected and observed behavior"), "stub": True}
+    return {"stub": True}
+
+
+def _record_model_tool_calls(raw_tool_calls: list[dict[str, Any]], fallback: dict[str, Any]) -> list[dict[str, Any]]:
+    calls: list[dict[str, Any]] = []
+    for raw in raw_tool_calls[:4]:
+        function = raw.get("function", {})
+        name = function.get("name") or raw.get("name") or "unknown_tool"
+        arguments = function.get("arguments", raw.get("arguments", {}))
+        if isinstance(arguments, str):
+            try:
+                arguments = json.loads(arguments)
+            except json.JSONDecodeError:
+                arguments = {"raw": arguments}
+        started = time.perf_counter()
+        calls.append(_tool_call(name, started, _stub_tool_output(name, arguments, fallback), status="stub"))
+    return calls
 
 
 async def diagnose_session(session_id: str, user_message: str | None = None) -> dict[str, Any]:
@@ -108,6 +183,15 @@ async def diagnose_session(session_id: str, user_message: str | None = None) -> 
     tool_calls.append(_tool_call("compare_expected_vs_observed", started, comparison))
 
     fallback = build_catalog_diagnosis(session, netlist, waveform, comparison, measurements, safety)
+    started = time.perf_counter()
+    tool_calls.append(
+        _tool_call(
+            "request_measurement",
+            started,
+            {"requested": fallback.get("next_measurement", {}), "source": "catalog_planner"},
+            status="stub",
+        )
+    )
     context = {
         "session": session,
         "measurements": measurements,
@@ -123,20 +207,31 @@ async def diagnose_session(session_id: str, user_message: str | None = None) -> 
     diagnosis = fallback
     try:
         client = OllamaClient(settings.ollama_base_url, settings.ollama_model)
+        agentic_prompt = AGENTIC_SYSTEM_PROMPT.format(
+            topology=fallback.get("experiment_type", "unknown"),
+            expected_behavior=json.dumps(fallback.get("expected_behavior", {}), indent=2),
+            fault_candidates=json.dumps(fallback.get("likely_faults", [])[:5], indent=2),
+        )
         chat_result = await client.chat(
             [
-                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "system", "content": agentic_prompt},
                 {"role": "user", "content": STRUCTURED_DIAGNOSIS_PROMPT.format(context=json.dumps(context, indent=2))},
             ],
             format_json=True,
+            tools=TOOL_SCHEMAS,
         )
+        model_tool_calls = _record_model_tool_calls(chat_result.get("tool_calls", []), fallback)
+        tool_calls.extend(model_tool_calls)
         content = chat_result["content"]
         parsed = parse_json_response(content)
         if parsed:
             diagnosis = {**fallback, **parsed}
             gemma_status = "ollama_gemma"
+        elif model_tool_calls:
+            gemma_status = "ollama_partial"
     except Exception as exc:  # noqa: BLE001 - fallback is the required demo behavior.
-        gemma_status = f"deterministic_fallback: {exc.__class__.__name__}"
+        gemma_status = "deterministic_fallback"
+        diagnosis = {**fallback, "gemma_error": exc.__class__.__name__}
 
     return _save_diagnosis(session_id, diagnosis, tool_calls, gemma_status=gemma_status)
 
