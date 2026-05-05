@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { StatusBar } from "expo-status-bar";
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -17,6 +17,8 @@ import {
   View,
 } from "react-native";
 import type { CompanionAnalysis } from "./src/types";
+import { createOnDeviceEngine } from "./src/onDevice/Engine";
+import type { StructuredDiagnosis } from "./src/onDevice/types";
 
 const DEFAULT_API_URL = "http://127.0.0.1:8000";
 
@@ -45,17 +47,67 @@ async function analyzeWithBackend(params: {
   return response.json();
 }
 
+function dataUrlToBase64(dataUrl: string) {
+  return dataUrl.includes(",") ? dataUrl.split(",", 2)[1] : dataUrl;
+}
+
+function structuredToCompanion(diagnosis: StructuredDiagnosis): CompanionAnalysis {
+  const topFault = diagnosis.likely_faults[0];
+  return {
+    mode: diagnosis.gemma_status ?? "on_device_gemma",
+    workspace: diagnosis.experiment_type,
+    visible_context: diagnosis.observed_behavior.summary,
+    answer: diagnosis.student_explanation,
+    next_actions: [
+      diagnosis.next_measurement.instruction,
+      topFault?.verification_test,
+      topFault?.fix_recipe,
+    ].filter(Boolean) as string[],
+    can_click: false,
+    safety: diagnosis.safety,
+    confidence: diagnosis.confidence,
+  };
+}
+
 export default function App() {
+  const localEngine = useMemo(() => createOnDeviceEngine("cactus"), []);
   const [apiUrl, setApiUrl] = useState(DEFAULT_API_URL);
   const [question, setQuestion] = useState("Look at this bench photo and tell me what to check next.");
   const [appHint, setAppHint] = useState("electronics_workspace");
   const [sessionId, setSessionId] = useState("");
   const [saveSnapshot, setSaveSnapshot] = useState(true);
+  const [localMode, setLocalMode] = useState(false);
+  const [localReady, setLocalReady] = useState(false);
+  const [localInfo, setLocalInfo] = useState("Gemma 4 E2B local model not checked");
   const [imageDataUrl, setImageDataUrl] = useState<string>("");
   const [imageUri, setImageUri] = useState<string>("");
   const [analysis, setAnalysis] = useState<CompanionAnalysis | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    async function refreshLocalModel() {
+      try {
+        const [ready, info] = await Promise.all([localEngine.ready(), localEngine.modelInfo()]);
+        if (!cancelled) {
+          setLocalReady(ready);
+          setLocalInfo(`${info.name} · ${info.quant}${info.sizeMB ? ` · ${info.sizeMB} MB` : ""}`);
+        }
+      } catch {
+        if (!cancelled) {
+          setLocalReady(false);
+          setLocalInfo("Gemma 4 E2B bridge or model is not ready");
+        }
+      }
+    }
+    if (localMode) {
+      refreshLocalModel();
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [localEngine, localMode]);
 
   async function pickImage(source: "camera" | "library") {
     setError("");
@@ -81,14 +133,20 @@ export default function App() {
     setBusy(true);
     setError("");
     try {
-      const result = await analyzeWithBackend({
-        apiUrl,
-        question,
-        imageDataUrl,
-        appHint,
-        sessionId,
-        saveSnapshot,
-      });
+      const result = localMode
+        ? structuredToCompanion(await localEngine.diagnose({
+          question,
+          measurements: [],
+          image_b64: imageDataUrl ? dataUrlToBase64(imageDataUrl) : undefined,
+        }))
+        : await analyzeWithBackend({
+          apiUrl,
+          question,
+          imageDataUrl,
+          appHint,
+          sessionId,
+          saveSnapshot,
+        });
       setAnalysis(result);
     } catch (exc) {
       setError(exc instanceof Error ? exc.message : "Analysis failed.");
@@ -116,6 +174,13 @@ export default function App() {
             <Text style={styles.label}>Laptop backend URL</Text>
             <TextInput value={apiUrl} onChangeText={setApiUrl} style={styles.input} autoCapitalize="none" />
             <Text style={styles.hint}>Use your Mac LAN IP when testing on a physical iPhone.</Text>
+            <View style={styles.switchRow}>
+              <View style={styles.flex}>
+                <Text style={styles.muted}>Local model (offline)</Text>
+                <Text style={localReady ? styles.ready : styles.hint}>{localInfo}</Text>
+              </View>
+              <Switch value={localMode} onValueChange={setLocalMode} trackColor={{ true: "#67f2a9" }} />
+            </View>
           </View>
 
           <View style={styles.card}>
@@ -146,8 +211,9 @@ export default function App() {
             </View>
             <Pressable style={[styles.primary, busy && styles.disabled]} onPress={analyze} disabled={busy}>
               {busy ? <ActivityIndicator color="#07110b" /> : <Ionicons name="sparkles" size={18} color="#07110b" />}
-              <Text style={styles.primaryText}>Analyze Bench Evidence</Text>
+              <Text style={styles.primaryText}>{localMode ? "Ask Local Gemma" : "Analyze Bench Evidence"}</Text>
             </Pressable>
+            {localMode && !localReady ? <Text style={styles.error}>Local mode is selected, but the native model is not ready. Add the model bundle or turn local mode off.</Text> : null}
             {error ? <Text style={styles.error}>{error}</Text> : null}
           </View>
 
@@ -184,6 +250,7 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1, borderColor: "#344238", backgroundColor: "#0f1512", color: "#edf7ee", minHeight: 44, padding: 10 },
   textArea: { minHeight: 96, textAlignVertical: "top" },
   hint: { color: "#98aa9e", fontSize: 12, lineHeight: 17 },
+  ready: { color: "#67f2a9", fontSize: 12, lineHeight: 17 },
   muted: { color: "#98aa9e", lineHeight: 20 },
   row: { flexDirection: "row", gap: 8 },
   button: { flex: 1, minHeight: 44, borderWidth: 1, borderColor: "#344238", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
@@ -202,4 +269,3 @@ const styles = StyleSheet.create({
   step: { color: "#edf7ee", lineHeight: 21 },
   error: { color: "#ff5f56", lineHeight: 20 },
 });
-
