@@ -14,7 +14,8 @@ Expected behavior:
 Top deterministic fault candidates:
 {fault_candidates}
 
-Use tool calls only for the next useful lab action. Prefer asking for one measurement over broad speculation."""
+Use tool calls only for the next useful lab action. Prefer asking for one measurement over broad speculation.
+After tool results are returned, produce the final structured diagnosis JSON."""
 
 
 STRUCTURED_DIAGNOSIS_PROMPT = """Given the following lab context, produce a structured diagnosis.

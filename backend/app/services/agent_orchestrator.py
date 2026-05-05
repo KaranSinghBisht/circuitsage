@@ -19,6 +19,7 @@ from ..tools.waveform_analysis import analyze_waveform_csv
 from .fault_catalog import build_catalog_diagnosis
 from .ollama_client import OllamaClient, parse_json_response
 from .prompt_templates import AGENTIC_SYSTEM_PROMPT, STRUCTURED_DIAGNOSIS_PROMPT
+from .tool_runner import AgentContext, run_tool
 
 
 TOOL_SCHEMAS: list[dict[str, Any]] = [
@@ -145,35 +146,45 @@ def _find_artifact(artifacts: list[dict[str, Any]], kind: str, contains: str | N
     return candidates[-1] if candidates else None
 
 
-def _stub_tool_output(name: str, arguments: dict[str, Any], fallback: dict[str, Any]) -> dict[str, Any]:
-    arguments = arguments if isinstance(arguments, dict) else {}
-    if name == "request_measurement":
-        return {"requested": arguments or fallback.get("next_measurement", {}), "stub": True}
-    if name == "compute_expected_value":
-        return {"expected_behavior": fallback.get("expected_behavior", {}), "stub": True}
-    if name == "request_image":
-        return {"requested": arguments.get("target", "current circuit or waveform"), "stub": True}
-    if name == "cite_textbook":
-        return {"topic": arguments.get("topic", "current topology"), "stub": True}
-    if name == "verify_with_simulation":
-        return {"check": arguments.get("check", "compare expected and observed behavior"), "stub": True}
-    return {"stub": True}
+def _tool_name_and_args(raw: dict[str, Any]) -> tuple[str, dict[str, Any]]:
+    function = raw.get("function", {})
+    name = function.get("name") or raw.get("name") or "unknown_tool"
+    arguments = function.get("arguments", raw.get("arguments", {}))
+    if isinstance(arguments, str):
+        try:
+            arguments = json.loads(arguments)
+        except json.JSONDecodeError:
+            arguments = {"raw": arguments}
+    if not isinstance(arguments, dict):
+        arguments = {}
+    return name, arguments
 
 
-def _record_model_tool_calls(raw_tool_calls: list[dict[str, Any]], fallback: dict[str, Any]) -> list[dict[str, Any]]:
-    calls: list[dict[str, Any]] = []
-    for raw in raw_tool_calls[:4]:
-        function = raw.get("function", {})
-        name = function.get("name") or raw.get("name") or "unknown_tool"
-        arguments = function.get("arguments", raw.get("arguments", {}))
-        if isinstance(arguments, str):
-            try:
-                arguments = json.loads(arguments)
-            except json.JSONDecodeError:
-                arguments = {"raw": arguments}
-        started = time.perf_counter()
-        calls.append(_tool_call(name, started, _stub_tool_output(name, arguments, fallback), status="stub"))
-    return calls
+async def _agentic_loop(
+    client: OllamaClient,
+    system_prompt: str,
+    user_prompt: str,
+    history: list[dict[str, str]],
+    tool_schemas: list[dict[str, Any]],
+    context: AgentContext,
+    max_iterations: int = 4,
+) -> dict[str, Any]:
+    transcript: list[dict[str, Any]] = [{"role": "system", "content": system_prompt}, *history, {"role": "user", "content": user_prompt}]
+    recorded_calls: list[dict[str, Any]] = []
+    for index in range(max_iterations):
+        chat = await client.chat(transcript, tools=tool_schemas, format_json=False)
+        raw_tool_calls = chat.get("tool_calls", [])
+        if not raw_tool_calls:
+            return {"content": chat["content"], "tool_calls": recorded_calls, "iterations": index + 1}
+        transcript.append({"role": "assistant", "content": chat.get("content", ""), "tool_calls": raw_tool_calls})
+        for raw in raw_tool_calls[:3]:
+            name, arguments = _tool_name_and_args(raw)
+            output = await run_tool(name, arguments, context=context)
+            transcript.append({"role": "tool", "name": name, "content": json.dumps(output)})
+            recorded_calls.append({"tool_name": name, "input": arguments, "output": output, "status": "ok", "duration_ms": 0})
+    transcript.append({"role": "user", "content": "Return only the structured diagnosis JSON now."})
+    final = await client.chat(transcript, format_json=True)
+    return {"content": final["content"], "tool_calls": recorded_calls, "iterations": max_iterations}
 
 
 async def diagnose_session(session_id: str, user_message: str | None = None) -> dict[str, Any]:
@@ -280,6 +291,16 @@ async def diagnose_session(session_id: str, user_message: str | None = None) -> 
         "deterministic_diagnosis": fallback,
         "student_message": user_message,
     }
+    agent_context = AgentContext(
+        session=session,
+        artifacts=artifacts,
+        measurements=evidence_measurements,
+        netlist=netlist,
+        waveform=waveform,
+        comparison=comparison,
+        fallback=fallback,
+        settings=settings,
+    )
 
     gemma_status = "deterministic_fallback"
     diagnosis = fallback
@@ -290,24 +311,24 @@ async def diagnose_session(session_id: str, user_message: str | None = None) -> 
             expected_behavior=json.dumps(fallback.get("expected_behavior", {}), indent=2),
             fault_candidates=json.dumps(fallback.get("likely_faults", [])[:5], indent=2),
         )
-        chat_result = await client.chat(
-            [
-                {"role": "system", "content": agentic_prompt},
-                *recent_messages,
-                {"role": "user", "content": STRUCTURED_DIAGNOSIS_PROMPT.format(context=json.dumps(context, indent=2))},
-            ],
-            format_json=True,
-            tools=TOOL_SCHEMAS,
+        agent_result = await _agentic_loop(
+            client,
+            agentic_prompt,
+            STRUCTURED_DIAGNOSIS_PROMPT.format(context=json.dumps(context, indent=2)),
+            recent_messages,
+            TOOL_SCHEMAS,
+            agent_context,
+            max_iterations=4,
         )
-        model_tool_calls = _record_model_tool_calls(chat_result.get("tool_calls", []), fallback)
-        tool_calls.extend(model_tool_calls)
-        content = chat_result["content"]
+        tool_calls.extend(agent_result["tool_calls"])
+        content = agent_result["content"]
         parsed = parse_json_response(content)
         if parsed:
-            diagnosis = {**fallback, **parsed}
-            gemma_status = "ollama_gemma"
-        elif model_tool_calls:
+            diagnosis = {**fallback, **parsed, "agent_iterations": agent_result["iterations"]}
+            gemma_status = "ollama_gemma_agentic" if agent_result["tool_calls"] else "ollama_gemma_single_shot"
+        else:
             gemma_status = "ollama_partial"
+            diagnosis = {**fallback, "agent_iterations": agent_result["iterations"]}
     except Exception as exc:  # noqa: BLE001 - fallback is the required demo behavior.
         gemma_status = "deterministic_fallback"
         diagnosis = {**fallback, "gemma_error": exc.__class__.__name__}
