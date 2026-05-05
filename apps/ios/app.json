@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "CircuitSage",
+    "slug": "circuitsage-ios",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "circuitsage",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "dev.circuitsage.ios",
+      "infoPlist": {
+        "NSCameraUsageDescription": "CircuitSage uses the camera to capture oscilloscope, multimeter, breadboard, and lab-bench evidence.",
+        "NSPhotoLibraryUsageDescription": "CircuitSage lets you attach existing lab screenshots or bench photos for analysis.",
+        "NSLocalNetworkUsageDescription": "CircuitSage connects to your laptop backend on the local network during lab sessions."
+      }
+    },
+    "plugins": ["expo-image-picker"],
+    "extra": {
+      "defaultApiUrl": "http://127.0.0.1:8000"
+    }
+  }
+}
+

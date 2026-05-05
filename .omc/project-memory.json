@@ -1,0 +1,365 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1777982883082,
+  "projectRoot": "/Users/kryptos/Desktop/Projects/gemma",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      }
+    ],
+    "frameworks": [],
+    "packageManager": "npm",
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": null,
+    "testCommand": null,
+    "lintCommand": null,
+    "devCommand": null,
+    "scripts": {
+      "dev:web": "npm --prefix frontend run dev",
+      "build:web": "npm --prefix frontend run build",
+      "dev:desktop": "npm --prefix apps/desktop run dev",
+      "check:desktop": "npm --prefix apps/desktop run check",
+      "dev:ios": "npm --prefix apps/ios run ios",
+      "check:ios": "npm --prefix apps/ios run check",
+      "test:backend": "PYTHONPATH=backend backend/.venv/bin/python -m pytest backend/tests"
+    }
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": true,
+    "workspaces": [
+      "frontend",
+      "apps/desktop",
+      "apps/ios"
+    ],
+    "mainDirectories": [
+      "docs"
+    ],
+    "gitBranches": null
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "apps": {
+      "path": "apps",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1777982882686,
+      "keyFiles": []
+    },
+    "backend": {
+      "path": "backend",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1777982882737,
+      "keyFiles": [
+        "requirements.txt"
+      ]
+    },
+    "docs": {
+      "path": "docs",
+      "purpose": "Documentation",
+      "fileCount": 5,
+      "lastAccessed": 1777982882780,
+      "keyFiles": [
+        "ARCHITECTURE.md",
+        "DEMO_SCRIPT.md",
+        "KAGGLE_WRITEUP_DRAFT.md",
+        "MEDIA_GALLERY.md",
+        "NATIVE_APPS.md"
+      ]
+    },
+    "frontend": {
+      "path": "frontend",
+      "purpose": null,
+      "fileCount": 5,
+      "lastAccessed": 1777982882782,
+      "keyFiles": [
+        "index.html",
+        "package.json",
+        "tsconfig.json",
+        "tsconfig.tsbuildinfo",
+        "vite.config.ts"
+      ]
+    },
+    "sample_data": {
+      "path": "sample_data",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1777982882784,
+      "keyFiles": []
+    },
+    "backend/app": {
+      "path": "backend/app",
+      "purpose": "Application code",
+      "fileCount": 5,
+      "lastAccessed": 1777982882787,
+      "keyFiles": [
+        "__init__.py",
+        "config.py",
+        "database.py"
+      ]
+    },
+    "backend/tests": {
+      "path": "backend/tests",
+      "purpose": "Test files",
+      "fileCount": 2,
+      "lastAccessed": 1777982882789,
+      "keyFiles": [
+        "test_companion.py",
+        "test_tools.py"
+      ]
+    },
+    "frontend/dist": {
+      "path": "frontend/dist",
+      "purpose": "Distribution/build output",
+      "fileCount": 1,
+      "lastAccessed": 1777982882797,
+      "keyFiles": [
+        "index.html"
+      ]
+    },
+    "frontend/src": {
+      "path": "frontend/src",
+      "purpose": "Source code",
+      "fileCount": 3,
+      "lastAccessed": 1777982882801,
+      "keyFiles": [
+        "main.tsx",
+        "styles.css",
+        "vite-env.d.ts"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "CircuitSage_AGENT_HANDOFF.md",
+      "accessCount": 2,
+      "lastAccessed": 1777982981296,
+      "type": "file"
+    },
+    {
+      "path": "README.md",
+      "accessCount": 1,
+      "lastAccessed": 1777982925366,
+      "type": "file"
+    },
+    {
+      "path": "SPEC.md",
+      "accessCount": 1,
+      "lastAccessed": 1777982926100,
+      "type": "file"
+    },
+    {
+      "path": "package.json",
+      "accessCount": 1,
+      "lastAccessed": 1777982926449,
+      "type": "file"
+    },
+    {
+      "path": "backend/app/main.py",
+      "accessCount": 1,
+      "lastAccessed": 1777982931158,
+      "type": "file"
+    },
+    {
+      "path": "backend/app/services/agent_orchestrator.py",
+      "accessCount": 1,
+      "lastAccessed": 1777982931925,
+      "type": "file"
+    },
+    {
+      "path": "backend/app/services/ollama_client.py",
+      "accessCount": 1,
+      "lastAccessed": 1777982932369,
+      "type": "file"
+    },
+    {
+      "path": "backend/app/services/prompt_templates.py",
+      "accessCount": 1,
+      "lastAccessed": 1777982933894,
+      "type": "file"
+    },
+    {
+      "path": "backend/requirements.txt",
+      "accessCount": 1,
+      "lastAccessed": 1777982934012,
+      "type": "file"
+    },
+    {
+      "path": "docs/ARCHITECTURE.md",
+      "accessCount": 1,
+      "lastAccessed": 1777982934064,
+      "type": "file"
+    },
+    {
+      "path": "docs/KAGGLE_WRITEUP_DRAFT.md",
+      "accessCount": 1,
+      "lastAccessed": 1777982934731,
+      "type": "file"
+    },
+    {
+      "path": "backend/app/tools/parse_netlist.py",
+      "accessCount": 1,
+      "lastAccessed": 1777982943033,
+      "type": "file"
+    },
+    {
+      "path": "backend/app/tools/waveform_analysis.py",
+      "accessCount": 1,
+      "lastAccessed": 1777982943272,
+      "type": "file"
+    },
+    {
+      "path": "backend/app/tools/measurement_compare.py",
+      "accessCount": 1,
+      "lastAccessed": 1777982943496,
+      "type": "file"
+    },
+    {
+      "path": "backend/app/tools/safety_check.py",
+      "accessCount": 1,
+      "lastAccessed": 1777982944314,
+      "type": "file"
+    },
+    {
+      "path": "backend/app/tools/rag.py",
+      "accessCount": 1,
+      "lastAccessed": 1777982944640,
+      "type": "file"
+    },
+    {
+      "path": "backend/app/schemas.py",
+      "accessCount": 1,
+      "lastAccessed": 1777982945785,
+      "type": "file"
+    },
+    {
+      "path": "backend/app/database.py",
+      "accessCount": 1,
+      "lastAccessed": 1777982946241,
+      "type": "file"
+    },
+    {
+      "path": "backend/app/config.py",
+      "accessCount": 1,
+      "lastAccessed": 1777982946540,
+      "type": "file"
+    },
+    {
+      "path": "frontend/src/main.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1777982946927,
+      "type": "file"
+    },
+    {
+      "path": "docs/NATIVE_APPS.md",
+      "accessCount": 1,
+      "lastAccessed": 1777982953323,
+      "type": "file"
+    },
+    {
+      "path": "docs/MEDIA_GALLERY.md",
+      "accessCount": 1,
+      "lastAccessed": 1777982954259,
+      "type": "file"
+    },
+    {
+      "path": "docs/DEMO_SCRIPT.md",
+      "accessCount": 1,
+      "lastAccessed": 1777982954937,
+      "type": "file"
+    },
+    {
+      "path": "apps/desktop/main.js",
+      "accessCount": 1,
+      "lastAccessed": 1777982956499,
+      "type": "file"
+    },
+    {
+      "path": "apps/ios/App.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1777982957089,
+      "type": "file"
+    },
+    {
+      "path": "backend/tests/test_companion.py",
+      "accessCount": 1,
+      "lastAccessed": 1777982957508,
+      "type": "file"
+    },
+    {
+      "path": "backend/tests/test_tools.py",
+      "accessCount": 1,
+      "lastAccessed": 1777982957689,
+      "type": "file"
+    },
+    {
+      "path": "sample_data/op_amp_lab/lab_manual_excerpt.md",
+      "accessCount": 1,
+      "lastAccessed": 1777982958446,
+      "type": "file"
+    },
+    {
+      "path": "sample_data/op_amp_lab/student_question.txt",
+      "accessCount": 1,
+      "lastAccessed": 1777982982122,
+      "type": "file"
+    },
+    {
+      "path": "sample_data/op_amp_lab/opamp_inverting.net",
+      "accessCount": 1,
+      "lastAccessed": 1777982982883,
+      "type": "file"
+    },
+    {
+      "path": "sample_data/op_amp_lab/expected_waveform.csv",
+      "accessCount": 1,
+      "lastAccessed": 1777982983737,
+      "type": "file"
+    },
+    {
+      "path": "sample_data/op_amp_lab/observed_saturated_waveform.csv",
+      "accessCount": 1,
+      "lastAccessed": 1777982984455,
+      "type": "file"
+    },
+    {
+      "path": "frontend/src/styles.css",
+      "accessCount": 1,
+      "lastAccessed": 1777982984807,
+      "type": "file"
+    },
+    {
+      "path": "frontend/package.json",
+      "accessCount": 1,
+      "lastAccessed": 1777982985212,
+      "type": "file"
+    },
+    {
+      "path": "apps/desktop/package.json",
+      "accessCount": 1,
+      "lastAccessed": 1777982986306,
+      "type": "file"
+    },
+    {
+      "path": "docs/WINNING_BUILD_PLAN.md",
+      "accessCount": 1,
+      "lastAccessed": 1777983758867,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}

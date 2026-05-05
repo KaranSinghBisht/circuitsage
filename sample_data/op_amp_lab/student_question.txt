@@ -1,0 +1,2 @@
+My LTspice simulation looks correct, but in the lab my op-amp output is stuck near +12V. What should I check first?
+

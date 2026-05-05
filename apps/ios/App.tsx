@@ -1,0 +1,205 @@
+import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
+import { StatusBar } from "expo-status-bar";
+import React, { useState } from "react";
+import {
+  ActivityIndicator,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import type { CompanionAnalysis } from "./src/types";
+
+const DEFAULT_API_URL = "http://127.0.0.1:8000";
+
+async function analyzeWithBackend(params: {
+  apiUrl: string;
+  question: string;
+  imageDataUrl?: string;
+  appHint: string;
+  sessionId?: string;
+  saveSnapshot: boolean;
+}): Promise<CompanionAnalysis> {
+  const response = await fetch(`${params.apiUrl.replace(/\/$/, "")}/api/companion/analyze`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      question: params.question,
+      image_data_url: params.imageDataUrl,
+      app_hint: params.appHint,
+      session_id: params.sessionId || null,
+      save_snapshot: params.saveSnapshot,
+    }),
+  });
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+  return response.json();
+}
+
+export default function App() {
+  const [apiUrl, setApiUrl] = useState(DEFAULT_API_URL);
+  const [question, setQuestion] = useState("Look at this bench photo and tell me what to check next.");
+  const [appHint, setAppHint] = useState("electronics_workspace");
+  const [sessionId, setSessionId] = useState("");
+  const [saveSnapshot, setSaveSnapshot] = useState(true);
+  const [imageDataUrl, setImageDataUrl] = useState<string>("");
+  const [imageUri, setImageUri] = useState<string>("");
+  const [analysis, setAnalysis] = useState<CompanionAnalysis | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function pickImage(source: "camera" | "library") {
+    setError("");
+    const permission =
+      source === "camera"
+        ? await ImagePicker.requestCameraPermissionsAsync()
+        : await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      setError("Permission is required to attach bench evidence.");
+      return;
+    }
+    const result =
+      source === "camera"
+        ? await ImagePicker.launchCameraAsync({ base64: true, quality: 0.72 })
+        : await ImagePicker.launchImageLibraryAsync({ base64: true, quality: 0.72 });
+    if (result.canceled || !result.assets[0]) return;
+    const asset = result.assets[0];
+    setImageUri(asset.uri);
+    setImageDataUrl(`data:image/jpeg;base64,${asset.base64 ?? ""}`);
+  }
+
+  async function analyze() {
+    setBusy(true);
+    setError("");
+    try {
+      const result = await analyzeWithBackend({
+        apiUrl,
+        question,
+        imageDataUrl,
+        appHint,
+        sessionId,
+        saveSnapshot,
+      });
+      setAnalysis(result);
+    } catch (exc) {
+      setError(exc instanceof Error ? exc.message : "Analysis failed.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <SafeAreaView style={styles.safe}>
+      <StatusBar style="light" />
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.flex}>
+        <ScrollView contentContainerStyle={styles.shell}>
+          <View style={styles.header}>
+            <View style={styles.pet}>
+              <Ionicons name="scan" size={30} color="#07110b" />
+            </View>
+            <View style={styles.flex}>
+              <Text style={styles.eyebrow}>iOS bench buddy</Text>
+              <Text style={styles.title}>CircuitSage</Text>
+            </View>
+          </View>
+
+          <View style={styles.card}>
+            <Text style={styles.label}>Laptop backend URL</Text>
+            <TextInput value={apiUrl} onChangeText={setApiUrl} style={styles.input} autoCapitalize="none" />
+            <Text style={styles.hint}>Use your Mac LAN IP when testing on a physical iPhone.</Text>
+          </View>
+
+          <View style={styles.card}>
+            <Text style={styles.label}>Bench evidence</Text>
+            {imageUri ? <Image source={{ uri: imageUri }} style={styles.image} /> : <View style={styles.emptyImage}><Text style={styles.muted}>No photo attached</Text></View>}
+            <View style={styles.row}>
+              <Pressable style={styles.button} onPress={() => pickImage("camera")}>
+                <Ionicons name="camera" size={18} color="#edf7ee" />
+                <Text style={styles.buttonText}>Camera</Text>
+              </Pressable>
+              <Pressable style={styles.button} onPress={() => pickImage("library")}>
+                <Ionicons name="images" size={18} color="#edf7ee" />
+                <Text style={styles.buttonText}>Library</Text>
+              </Pressable>
+            </View>
+          </View>
+
+          <View style={styles.card}>
+            <Text style={styles.label}>Question</Text>
+            <TextInput value={question} onChangeText={setQuestion} style={[styles.input, styles.textArea]} multiline />
+            <Text style={styles.label}>Workspace hint</Text>
+            <TextInput value={appHint} onChangeText={setAppHint} style={styles.input} autoCapitalize="none" />
+            <Text style={styles.label}>Session id</Text>
+            <TextInput value={sessionId} onChangeText={setSessionId} style={styles.input} autoCapitalize="none" placeholder="optional" placeholderTextColor="#738176" />
+            <View style={styles.switchRow}>
+              <Text style={styles.muted}>Save snapshot to session</Text>
+              <Switch value={saveSnapshot} onValueChange={setSaveSnapshot} trackColor={{ true: "#67f2a9" }} />
+            </View>
+            <Pressable style={[styles.primary, busy && styles.disabled]} onPress={analyze} disabled={busy}>
+              {busy ? <ActivityIndicator color="#07110b" /> : <Ionicons name="sparkles" size={18} color="#07110b" />}
+              <Text style={styles.primaryText}>Analyze Bench Evidence</Text>
+            </Pressable>
+            {error ? <Text style={styles.error}>{error}</Text> : null}
+          </View>
+
+          <View style={styles.card}>
+            <Text style={styles.label}>CircuitSage answer</Text>
+            {analysis ? (
+              <View style={styles.result}>
+                <Text style={styles.resultMeta}>{analysis.mode ?? "analysis"} · {analysis.confidence ?? "unknown"} confidence</Text>
+                <Text style={styles.resultTitle}>{analysis.workspace}</Text>
+                <Text style={styles.body}>{analysis.visible_context}</Text>
+                <Text style={styles.answer}>{analysis.answer}</Text>
+                {(analysis.next_actions ?? []).map((action) => <Text style={styles.step} key={action}>• {action}</Text>)}
+              </View>
+            ) : (
+              <Text style={styles.muted}>Capture a photo, ask a question, and send it to your local Gemma backend.</Text>
+            )}
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: "#0c100e" },
+  flex: { flex: 1 },
+  shell: { padding: 16, gap: 12 },
+  header: { flexDirection: "row", gap: 12, alignItems: "center", marginBottom: 4 },
+  pet: { width: 64, height: 64, borderRadius: 32, backgroundColor: "#67f2a9", alignItems: "center", justifyContent: "center" },
+  eyebrow: { color: "#67f2a9", textTransform: "uppercase", fontSize: 12, fontWeight: "900" },
+  title: { color: "#edf7ee", fontSize: 38, fontWeight: "800" },
+  card: { borderWidth: 1, borderColor: "#344238", backgroundColor: "#18201c", padding: 14, gap: 10 },
+  label: { color: "#98aa9e", textTransform: "uppercase", fontSize: 12, fontWeight: "900" },
+  input: { borderWidth: 1, borderColor: "#344238", backgroundColor: "#0f1512", color: "#edf7ee", minHeight: 44, padding: 10 },
+  textArea: { minHeight: 96, textAlignVertical: "top" },
+  hint: { color: "#98aa9e", fontSize: 12, lineHeight: 17 },
+  muted: { color: "#98aa9e", lineHeight: 20 },
+  row: { flexDirection: "row", gap: 8 },
+  button: { flex: 1, minHeight: 44, borderWidth: 1, borderColor: "#344238", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
+  buttonText: { color: "#edf7ee", fontWeight: "800" },
+  primary: { minHeight: 48, backgroundColor: "#67f2a9", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
+  primaryText: { color: "#07110b", fontWeight: "900" },
+  disabled: { opacity: 0.6 },
+  image: { width: "100%", height: 240, resizeMode: "contain", backgroundColor: "#050706", borderWidth: 1, borderColor: "#26332c" },
+  emptyImage: { height: 160, backgroundColor: "#0f1512", borderWidth: 1, borderColor: "#344238", alignItems: "center", justifyContent: "center" },
+  switchRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  result: { gap: 8 },
+  resultMeta: { color: "#ffbf57", textTransform: "uppercase", fontSize: 11, fontWeight: "900" },
+  resultTitle: { color: "#edf7ee", fontSize: 24, fontWeight: "900" },
+  body: { color: "#d7e3d8", lineHeight: 21 },
+  answer: { color: "#67f2a9", lineHeight: 21, fontWeight: "800" },
+  step: { color: "#edf7ee", lineHeight: 21 },
+  error: { color: "#ff5f56", lineHeight: 20 },
+});
+

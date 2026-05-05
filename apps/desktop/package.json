@@ -1,0 +1,31 @@
+{
+  "name": "circuitsage-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "CircuitSage macOS desktop companion",
+  "main": "main.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron .",
+    "check": "node --check main.js && node --check preload.js && node --check automation.js && node --check renderer/renderer.js"
+  },
+  "dependencies": {
+    "electron": "^41.5.0"
+  },
+  "devDependencies": {
+    "electron-builder": "^26.8.1"
+  },
+  "build": {
+    "appId": "dev.circuitsage.companion",
+    "productName": "CircuitSage Companion",
+    "mac": {
+      "category": "public.app-category.education",
+      "target": ["dmg", "zip"],
+      "hardenedRuntime": true,
+      "entitlements": "entitlements.mac.plist",
+      "entitlementsInherit": "entitlements.mac.plist"
+    },
+    "files": ["main.js", "preload.js", "automation.js", "renderer/**/*"]
+  }
+}

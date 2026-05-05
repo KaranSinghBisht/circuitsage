@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CircuitSage Companion</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <div class="pet">CS</div>
+        <div>
+          <p class="eyebrow">macOS desktop buddy</p>
+          <h1>CircuitSage</h1>
+          <p class="shortcut">⌘⇧Space to ask from anywhere</p>
+        </div>
+      </header>
+
+      <section id="commandOverlay" class="command-overlay hidden">
+        <div class="glow-ring"></div>
+        <div class="command-box">
+          <p class="eyebrow">Ask current workspace</p>
+          <textarea id="quickQuestion">What am I looking at, and what should I check next?</textarea>
+          <div class="button-row">
+            <button id="quickAnalyze" class="primary">Ask Gemma</button>
+            <button id="quickVoice">Voice</button>
+            <button id="quickClose">Close</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="controls">
+        <label>
+          Backend
+          <input id="apiUrl" value="http://127.0.0.1:8000" />
+        </label>
+        <label>
+          Workspace
+          <select id="appHint">
+            <option value="auto">Auto</option>
+            <option value="tinkercad">Tinkercad</option>
+            <option value="ltspice">LTspice</option>
+            <option value="matlab">MATLAB / Simulink</option>
+            <option value="electronics_workspace">General electronics</option>
+          </select>
+        </label>
+        <label>
+          Screen or window
+          <select id="sourceSelect"></select>
+        </label>
+        <div class="button-row">
+          <button id="refreshSources">Refresh</button>
+          <button id="activeSource">Current Window</button>
+          <button id="screenPerm">Screen Permission</button>
+          <button id="accessPerm">Automation Permission</button>
+        </div>
+      </section>
+
+      <section class="preview-card">
+        <div class="preview-head">
+          <span id="statusDot" class="status">idle</span>
+          <label><input id="autoWatch" type="checkbox" /> watch</label>
+          <label><input id="alwaysTop" type="checkbox" checked /> top</label>
+          <label><input id="compactMode" type="checkbox" /> compact</label>
+        </div>
+        <img id="preview" alt="Selected source preview" />
+      </section>
+
+      <section class="ask-card">
+        <textarea id="question">Look at my screen and tell me what to check next.</textarea>
+        <div class="button-row">
+          <button id="voicePrompt">Voice prompt</button>
+          <button id="hideWindow">Hide</button>
+        </div>
+        <label class="inline"><input id="saveSnapshot" type="checkbox" /> save snapshot to session</label>
+        <input id="sessionId" placeholder="Optional CircuitSage session id" />
+        <button id="analyze" class="primary">Analyze current screen</button>
+      </section>
+
+      <section id="result" class="result-card">
+        <h2>Ready</h2>
+        <p>Select a Tinkercad, LTspice, MATLAB, or browser window and ask.</p>
+      </section>
+    </main>
+    <script src="./renderer.js"></script>
+  </body>
+</html>

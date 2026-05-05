@@ -1,0 +1,28 @@
+{
+  "name": "circuitsage-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "apps/desktop",
+    "apps/ios"
+  ],
+  "overrides": {
+    "@xmldom/xmldom": "^0.9.10",
+    "postcss": "^8.5.14",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "react-native": "0.83.6",
+    "tar": "^7.5.13",
+    "uuid": "^14.0.0"
+  },
+  "scripts": {
+    "dev:web": "npm --prefix frontend run dev",
+    "build:web": "npm --prefix frontend run build",
+    "dev:desktop": "npm --prefix apps/desktop run dev",
+    "check:desktop": "npm --prefix apps/desktop run check",
+    "dev:ios": "npm --prefix apps/ios run ios",
+    "check:ios": "npm --prefix apps/ios run check",
+    "test:backend": "PYTHONPATH=backend backend/.venv/bin/python -m pytest backend/tests"
+  }
+}
