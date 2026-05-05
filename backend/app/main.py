@@ -251,6 +251,9 @@ Student question:
 App hint:
 {payload.app_hint}
 
+Requested language:
+{payload.lang}
+
 Return compact JSON:
 {{
   "workspace": "tinkercad | ltspice | matlab | electronics_workspace | unknown",
@@ -268,6 +271,7 @@ Rules:
 - For MATLAB, focus on plots, units, arrays, sample rate, transfer functions, and numerical checks.
 - For Tinkercad, focus on wiring, pin order, ground, polarity, code/simulation mismatch, and measured nodes.
 - If evidence is incomplete, ask for the next measurement or the next screen to inspect.
+- Keep JSON keys in English. Translate user-facing explanation, next actions, and warnings to the requested language.
 - Refuse detailed live debugging for mains/high-voltage.
 """
     if not image_base64:
@@ -634,7 +638,7 @@ def bench_qr(session_id: str) -> dict:
 @app.post("/api/sessions/{session_id}/diagnose")
 async def diagnose(session_id: str, payload: DiagnosisRequest | None = None) -> dict:
     _get_session_or_404(session_id)
-    return await diagnose_session(session_id, payload.message if payload else None)
+    return await diagnose_session(session_id, payload.message if payload else None, lang=payload.lang if payload else "en")
 
 
 @app.get("/api/sessions/{session_id}/diagnoses")
@@ -653,7 +657,7 @@ async def chat(session_id: str, payload: ChatRequest) -> dict:
             "INSERT INTO messages (id, session_id, role, content, metadata_json, created_at) VALUES (?, ?, ?, ?, ?, ?)",
             (str(uuid.uuid4()), session_id, "user", payload.message, json.dumps({"mode": payload.mode}), utc_now()),
         )
-    result = await diagnose_session(session_id, payload.message)
+    result = await diagnose_session(session_id, payload.message, lang=payload.lang)
     diagnosis = result["diagnosis"]
     reply = (
         f"{diagnosis.get('student_explanation')}\n\n"

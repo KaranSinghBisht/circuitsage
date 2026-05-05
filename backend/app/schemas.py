@@ -78,10 +78,12 @@ class Measurement(BaseModel):
 class ChatRequest(BaseModel):
     message: str
     mode: Literal["pre_lab", "bench", "report"] = "bench"
+    lang: str = "en"
 
 
 class DiagnosisRequest(BaseModel):
     message: str | None = None
+    lang: str = "en"
 
 
 class Diagnosis(BaseModel):
@@ -102,3 +104,4 @@ class CompanionAnalyzeRequest(BaseModel):
     app_hint: str = "auto"
     session_id: str | None = None
     save_snapshot: bool = False
+    lang: str = "en"

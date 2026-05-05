@@ -14,6 +14,8 @@ Expected behavior:
 Top deterministic fault candidates:
 {fault_candidates}
 
+Response language: {lang}. Keep JSON keys in English. Translate only student_explanation, next_measurement.instruction, and safety.warnings.
+
 Use native tool calls for the next useful lab action. Prefer asking for one measurement over broad speculation.
 When you have enough evidence or hit the iteration limit, call the final_answer tool with the complete structured diagnosis."""
 

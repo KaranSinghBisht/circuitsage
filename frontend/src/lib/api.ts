@@ -24,6 +24,8 @@ export const api = {
       body: JSON.stringify({ title, student_level: "2nd/3rd year EEE", notes: "" }),
     }),
   seedDemo: (slug = "op-amp") => request<LabSession>(`/api/sessions/seed/${slug}`, { method: "POST" }),
+  seedFault: (topology: string, faultId: string) =>
+    request<LabSession>(`/api/sessions/seed/fault/${topology}/${faultId}`, { method: "POST" }),
   upload: (sessionId: string, file: File, kind: string) => {
     const body = new FormData();
     body.append("file", file);
@@ -35,26 +37,44 @@ export const api = {
       method: "POST",
       body: JSON.stringify(payload),
     }),
-  diagnose: (sessionId: string, message?: string) =>
+  diagnose: (sessionId: string, message?: string, lang = "en") =>
     request(`/api/sessions/${sessionId}/diagnose`, {
       method: "POST",
-      body: JSON.stringify({ message }),
+      body: JSON.stringify({ message, lang }),
     }),
-  chat: (sessionId: string, message: string, mode = "bench") =>
+  chat: (sessionId: string, message: string, mode = "bench", lang = "en") =>
     request(`/api/sessions/${sessionId}/chat`, {
       method: "POST",
-      body: JSON.stringify({ message, mode }),
+      body: JSON.stringify({ message, mode, lang }),
     }),
   benchStart: (sessionId: string) => request<{ bench_url: string }>(`/api/sessions/${sessionId}/bench/start`, { method: "POST" }),
   benchQr: (sessionId: string) => request<{ url: string; data_url: string }>(`/api/sessions/${sessionId}/bench/qr`),
   report: (sessionId: string) => request<{ markdown: string }>(`/api/sessions/${sessionId}/report`, { method: "POST" }),
+  reportPdfUrl: (sessionId: string) => `${API_BASE}/api/sessions/${sessionId}/report.pdf`,
   artifactUrl: (artifactId: string) => `${API_BASE}/api/artifacts/${artifactId}/download`,
+  faults: () => request<Array<{
+    topology: string;
+    id: string;
+    name: string;
+    why: string;
+    requires_measurements: string[];
+    verification_test: string;
+    fix_recipe: string;
+  }>>("/api/faults"),
+  educatorOverview: () => request<{
+    total_sessions: number;
+    safety_refusals: number;
+    unfinished_sessions: number;
+    common_faults: Array<{ topology: string; fault: string; count: number }>;
+    stalled_measurements: Array<{ label: string; count: number }>;
+  }>("/api/educator/overview"),
   companionAnalyze: (payload: {
     question: string;
     image_data_url?: string;
     app_hint: string;
     session_id?: string;
     save_snapshot?: boolean;
+    lang?: string;
   }) =>
     request<CompanionAnalysis>("/api/companion/analyze", {
       method: "POST",

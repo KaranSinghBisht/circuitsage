@@ -262,7 +262,7 @@ async def _agentic_loop(
     return {"content": final["content"], "tool_calls": recorded_calls, "iterations": max_iterations}
 
 
-async def diagnose_session(session_id: str, user_message: str | None = None) -> dict[str, Any]:
+async def diagnose_session(session_id: str, user_message: str | None = None, lang: str = "en") -> dict[str, Any]:
     settings = get_settings()
     session, artifacts, measurements = _load_session_context(session_id)
     recent_messages = _load_recent_messages(session_id)
@@ -385,6 +385,7 @@ async def diagnose_session(session_id: str, user_message: str | None = None) -> 
             topology=fallback.get("experiment_type", "unknown"),
             expected_behavior=json.dumps(fallback.get("expected_behavior", {}), indent=2),
             fault_candidates=json.dumps(fallback.get("likely_faults", [])[:5], indent=2),
+            lang=lang,
         )
         agent_result = await _agentic_loop(
             client,
