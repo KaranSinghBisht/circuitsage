@@ -14,6 +14,7 @@ from ..tools.rag import retrieve_lab_manual
 from ..tools.report_builder import generate_report
 from ..tools.safety_check import safety_check
 from ..tools.waveform_analysis import analyze_waveform_csv
+from .fault_catalog import build_catalog_diagnosis
 from .ollama_client import OllamaClient, parse_json_response
 from .prompt_templates import STRUCTURED_DIAGNOSIS_PROMPT, SYSTEM_PROMPT
 
@@ -54,85 +55,6 @@ def _find_artifact(artifacts: list[dict[str, Any]], kind: str, contains: str | N
     return candidates[-1] if candidates else None
 
 
-def _fallback_diagnosis(
-    session: dict[str, Any],
-    netlist: dict[str, Any],
-    waveform: dict[str, Any],
-    comparison: dict[str, Any],
-    measurements: list[dict[str, Any]],
-    safety: dict[str, Any],
-) -> dict[str, Any]:
-    expected_gain = netlist.get("computed", {}).get("gain", -4.7)
-    labels = {m["label"].lower(): m for m in measurements}
-    noninv = next((m for key, m in labels.items() if "non" in key or "v_noninv" in key or "pin 3" in key), None)
-
-    likely_faults = [
-        {
-            "fault": "Floating or incorrectly biased non-inverting input",
-            "confidence": 0.86 if noninv and abs(float(noninv["value"])) > 0.5 else 0.78,
-            "why": "A floating reference input can drive the op-amp into saturation even when the feedback network is correct.",
-        },
-        {
-            "fault": "Feedback path disconnected or wired to wrong node",
-            "confidence": 0.55,
-            "why": "Without negative feedback, an op-amp can saturate at a rail.",
-        },
-        {
-            "fault": "Power rail or common ground issue",
-            "confidence": 0.35,
-            "why": "The rails look plausible, but a missing common reference can still create misleading behavior.",
-        },
-    ]
-
-    next_measurement = {
-        "label": "Voltage at non-inverting input pin",
-        "expected": "approximately 0 V",
-        "instruction": "Measure the non-inverting input with respect to circuit ground before changing resistor values.",
-    }
-    explanation = (
-        "The simulation expects gain around -4.7, but the observed output is saturated near the positive rail. "
-        "Since both supply rails look correct, the next best measurement is the non-inverting input voltage."
-    )
-    status = "diagnosing"
-    confidence = "medium_high"
-
-    if noninv and abs(float(noninv["value"])) > 0.5:
-        next_measurement = {
-            "label": "Retest Vout after grounding non-inverting input",
-            "expected": "inverted sine wave near 4.7 V peak",
-            "instruction": "Power off, tie the non-inverting input to circuit ground, power on, and retest the output waveform.",
-        }
-        explanation = (
-            "That measurement confirms the likely issue: the non-inverting input is not at the 0 V reference. "
-            "This is a reference/feedback problem, not a gain-formula problem."
-        )
-        status = "resolved"
-        confidence = "high"
-
-    return {
-        "experiment_type": session.get("experiment_type", "op_amp_inverting"),
-        "expected_behavior": {
-            "gain": expected_gain,
-            "output": f"inverted sine wave, about {abs(expected_gain)} V peak for 1 V peak input",
-        },
-        "observed_behavior": {
-            "summary": "Output is stuck near the positive supply rail"
-            if waveform.get("is_saturated")
-            else "More bench evidence is needed",
-            "evidence": [
-                *(f"{m['label']} = {m['value']} {m['unit']} {m['mode']}" for m in measurements),
-                f"waveform analysis: {comparison.get('mismatch_type')}",
-            ],
-        },
-        "likely_faults": likely_faults,
-        "next_measurement": next_measurement,
-        "safety": {"risk_level": safety["risk_level"], "warnings": safety["warnings"]},
-        "student_explanation": explanation,
-        "confidence": confidence,
-        "session_status": status,
-    }
-
-
 async def diagnose_session(session_id: str, user_message: str | None = None) -> dict[str, Any]:
     settings = get_settings()
     session, artifacts, measurements = _load_session_context(session_id)
@@ -160,7 +82,7 @@ async def diagnose_session(session_id: str, user_message: str | None = None) -> 
         }
         return _save_diagnosis(session_id, diagnosis, tool_calls, gemma_status="blocked_by_safety")
 
-    netlist: dict[str, Any] = {"components": [], "detected_topology": "op_amp_inverting", "computed": {"gain": -4.7}}
+    netlist: dict[str, Any] = {"components": [], "detected_topology": "unknown", "computed": {}}
     netlist_artifact = _find_artifact(artifacts, "netlist")
     if netlist_artifact:
         started = time.perf_counter()
@@ -185,7 +107,7 @@ async def diagnose_session(session_id: str, user_message: str | None = None) -> 
     comparison = compare_expected_vs_observed(netlist.get("computed", {}).get("gain"), waveform, measurements)
     tool_calls.append(_tool_call("compare_expected_vs_observed", started, comparison))
 
-    fallback = _fallback_diagnosis(session, netlist, waveform, comparison, measurements, safety)
+    fallback = build_catalog_diagnosis(session, netlist, waveform, comparison, measurements, safety)
     context = {
         "session": session,
         "measurements": measurements,
