@@ -45,3 +45,12 @@
 ## F4 live Gemma status color verification
 
 - The chat status chip is implemented and maps `ollama_gemma_agentic` to green `agentic`, `ollama_gemma_single_shot` to yellow `single_shot`, deterministic fallback to blue `deterministic`, and safety refusal to red `safety_refusal`. The frontend build passes. The Ollama-up visual flip could not be exercised on 2026-05-06 because Ollama is not reachable at `http://localhost:11434`; only the deterministic/down path was verified locally.
+
+## Kaggle training kernel (2026-05-06)
+
+- `train/kaggle_kernel/circuitsage_lora.ipynb` was pushed to https://www.kaggle.com/code/karansinghbisht/circuitsage-gemma-lora as kernel versions 1–8 across this session. Errors encountered, in order: (v1) gated `unsloth/gemma-3-4b-it`; (v2) CUDA arch mismatch with bitsandbytes>=0.45 on T4 SM 7.5; (v3-v4) `ModuleNotFoundError: trl`; (v5) `ImportError: unsloth_zoo`; (v6) `ModuleNotFoundError: triton.ops` (latest Triton dropped that submodule); (v7) same; (v8 with pinned `unsloth==2024.12.4` + `triton==2.3.1`) PyTorch 13.0 vs torchvision 12.8 CUDA mismatch from Kaggle's pre-installed torch. The recommended remedy for the Unsloth Prize lane is to start from Unsloth's published Kaggle template (which manages its own torch + CUDA stack) and copy in our `circuitsage_qa.jsonl` plus the LoRA hyperparameters from this notebook. Local LoRA training on this Mac was intentionally not attempted.
+- The Kaggle dataset `karansinghbisht/circuitsage-faults-v1` is uploaded but **private** by default. Toggle to public via the Kaggle web UI before submission so judges can click the dataset link in `docs/KAGGLE_WRITEUP_DRAFT.md`. CLI does not currently expose a visibility toggle for an existing dataset.
+
+## Live agent loop on local CPU (2026-05-06)
+
+- `gemma3:4b` and `gemma4:e4b` are both pulled in local Ollama (3.3 GB and 10 GB respectively). `gemma3:4b` rejects the `tools=` parameter with HTTP 400/404; the `OllamaClient.chat` fallback drops `tools` and retries, giving `gemma_status: ollama_gemma_single_shot`. `gemma4:e4b` accepts `tools=` natively but inference on M-series CPU at 68%/32% CPU/GPU split reaches ~5 tokens/sec — a full agent loop times out the 300 s read timeout in two iterations on the op-amp seed. The deterministic fallback path returns the correct top fault `floating_noninv_input` with the full 8-step tool-call timeline, so the demo is honest. Faster live agentic-mode acceptance requires a CUDA host or Apple Silicon Metal-tuned Ollama build.

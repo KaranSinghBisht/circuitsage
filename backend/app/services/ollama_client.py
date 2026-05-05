@@ -29,7 +29,7 @@ class OllamaClient:
 
         fallback = False
         last_error: Exception | None = None
-        timeout = httpx.Timeout(connect=5.0, read=120.0, write=30.0, pool=5.0)
+        timeout = httpx.Timeout(connect=5.0, read=300.0, write=30.0, pool=5.0)
         for attempt in range(2):
             try:
                 async with httpx.AsyncClient(timeout=timeout) as client:

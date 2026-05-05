@@ -537,7 +537,7 @@ async def diagnose_session(session_id: str, user_message: str | None = None, lan
             recent_messages,
             TOOL_SCHEMAS,
             agent_context,
-            max_iterations=4,
+            max_iterations=2,
         )
         tool_calls.extend(agent_result["tool_calls"])
         content = agent_result["content"]

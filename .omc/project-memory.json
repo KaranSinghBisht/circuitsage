@@ -152,20 +152,26 @@
     },
     {
       "path": "backend/app/services/ollama_client.py",
-      "accessCount": 5,
-      "lastAccessed": 1778022031308,
+      "accessCount": 6,
+      "lastAccessed": 1778024375251,
       "type": "file"
     },
     {
       "path": "backend/app/services/agent_orchestrator.py",
-      "accessCount": 4,
-      "lastAccessed": 1778021866366,
+      "accessCount": 5,
+      "lastAccessed": 1778024376586,
       "type": "file"
     },
     {
       "path": "README.md",
       "accessCount": 3,
       "lastAccessed": 1778022296141,
+      "type": "file"
+    },
+    {
+      "path": "docs/BLOCKERS.md",
+      "accessCount": 3,
+      "lastAccessed": 1778024457044,
       "type": "file"
     },
     {
@@ -358,12 +364,6 @@
       "path": "docs/WINNING_BUILD_PLAN.md",
       "accessCount": 1,
       "lastAccessed": 1777983758867,
-      "type": "file"
-    },
-    {
-      "path": "docs/BLOCKERS.md",
-      "accessCount": 1,
-      "lastAccessed": 1777997665069,
       "type": "file"
     },
     {
