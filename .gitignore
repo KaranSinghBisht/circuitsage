@@ -9,6 +9,8 @@ backend/app/data/*.db
 backend/app/data/vectorstore.json
 backend/app/data/chroma/
 backend/app/uploads/
+train/output/*
+!train/output/circuitsage.Modelfile
 
 # Node
 node_modules/

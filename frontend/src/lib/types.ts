@@ -32,6 +32,7 @@ export type Diagnosis = {
   confidence?: string;
   tool_calls?: ToolCall[];
   gemma_status?: string;
+  gemma_model?: string;
 };
 
 export type ModelHealth = {

@@ -204,7 +204,13 @@ async def diagnose_session(session_id: str, user_message: str | None = None) -> 
             "student_explanation": safety["message"],
             "confidence": "high",
         }
-        return _save_diagnosis(session_id, diagnosis, tool_calls, gemma_status="blocked_by_safety")
+        return _save_diagnosis(
+            session_id,
+            diagnosis,
+            tool_calls,
+            gemma_status="blocked_by_safety",
+            gemma_model=settings.ollama_model,
+        )
 
     netlist: dict[str, Any] = {"components": [], "detected_topology": "unknown", "computed": {}}
     netlist_artifact = _find_artifact(artifacts, "netlist")
@@ -306,7 +312,7 @@ async def diagnose_session(session_id: str, user_message: str | None = None) -> 
         gemma_status = "deterministic_fallback"
         diagnosis = {**fallback, "gemma_error": exc.__class__.__name__}
 
-    return _save_diagnosis(session_id, diagnosis, tool_calls, gemma_status=gemma_status)
+    return _save_diagnosis(session_id, diagnosis, tool_calls, gemma_status=gemma_status, gemma_model=settings.ollama_model)
 
 
 def _save_diagnosis(
@@ -314,8 +320,11 @@ def _save_diagnosis(
     diagnosis: dict[str, Any],
     tool_calls: list[dict[str, Any]],
     gemma_status: str,
+    gemma_model: str | None = None,
 ) -> dict[str, Any]:
     diagnosis = {**diagnosis, "tool_calls": tool_calls, "gemma_status": gemma_status}
+    if gemma_model:
+        diagnosis["gemma_model"] = gemma_model
     diagnosis_id = str(uuid.uuid4())
     now = utc_now()
     with db() as conn:

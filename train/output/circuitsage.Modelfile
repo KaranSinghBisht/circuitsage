@@ -1,0 +1,7 @@
+FROM ./circuitsage-lora-q4_k_m.gguf
+TEMPLATE """{{ .System }}
+{{ .Prompt }}"""
+PARAMETER temperature 0.3
+PARAMETER top_p 0.9
+PARAMETER num_ctx 4096
+SYSTEM """You are CircuitSage, an offline electronics lab partner."""
