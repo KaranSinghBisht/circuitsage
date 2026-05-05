@@ -2,46 +2,9 @@
 
 **Stack traces for circuits.**
 
-CircuitSage is a local-first Gemma-powered lab partner for electronics students. Software students get stack traces. Electronics students get silence. CircuitSage gives circuits a debugging voice by connecting lab manuals, simulation files, waveform data, bench measurements, and phone-captured evidence into one persistent workflow.
+CircuitSage is a local-first Gemma lab buddy for electronics students. Turn it on beside Tinkercad, LTspice, MATLAB, a lab manual, or a bench setup; it watches the shared screen, remembers the session evidence, asks for the next useful measurement, and explains circuit failures without pretending deterministic fallback is an AI answer.
 
-## Demo Story
-
-The included hero demo is an inverting op-amp amplifier:
-
-- Rin = 10 kΩ and Rf = 47 kΩ.
-- Expected gain is -4.7.
-- Simulation looks correct.
-- Bench output is stuck near +12 V.
-- CircuitSage compares expected vs observed behavior, asks for the non-inverting input voltage, then identifies a likely floating reference input.
-
-CircuitSage is not replacing teachers. It gives every student a patient lab partner, one that can see the circuit, remember the simulation, ask for the next measurement, and explain the mistake.
-
-## Screenshots / Media
-
-Generated demo media is included in `sample_data/op_amp_lab/`:
-
-- `scope_saturated_placeholder.png`: saturated output near the positive rail.
-- `fixed_scope_placeholder.png`: corrected output waveform after grounding the reference input.
-- `breadboard_placeholder.png`: bench-mode breadboard placeholder.
-
-## Architecture
-
-```text
-frontend React/Vite PWA
-  Home -> Studio -> Bench Mode
-        |
-        v
-backend FastAPI
-  SQLite session memory
-  file uploads
-  deterministic tools
-  Ollama Gemma client with fallback
-        |
-        v
-sample_data/op_amp_lab
-```
-
-Gemma is used through Ollama for natural-language diagnosis and explanation. Deterministic tools handle netlist parsing, waveform analysis, safety checks, manual retrieval, expected-vs-observed comparison, and report generation. If Ollama is unavailable, the deterministic fallback still runs the full demo.
+![CircuitSage saturated scope demo](sample_data/op_amp_lab/scope_saturated_placeholder.png)
 
 ## Quickstart
 
@@ -50,31 +13,27 @@ make install
 make demo
 ```
 
-`make demo` starts the FastAPI backend, opens the web app, and runs the Vite dev server.
+`make demo` starts the FastAPI backend, opens `http://localhost:5173`, and runs the Vite dev server. Load the op-amp demo from the home screen or open `/companion` for the always-on screen buddy.
 
-## Local Setup
+## What Works
 
-Backend:
+- Web Studio for lab sessions, artifacts, measurements, diagnosis, reports, and QR bench handoff.
+- Companion mode for screen sharing, snapshot analysis, and workspace-aware help for Tinkercad, LTspice, MATLAB, plots, manuals, and circuit screenshots.
+- macOS desktop companion in [apps/desktop](apps/desktop) with an always-on-top window, tray persistence, global shortcut prompt, screen/window picker, voice input, and guarded automation hooks.
+- iOS bench companion in [apps/ios](apps/ios) for camera/photo evidence, session attachment, and backend analysis from a physical phone.
+- Backend FastAPI tools for SPICE parsing, waveform analysis, measurement comparison, safety checks, fault catalog reasoning, Ollama/Gemma chat, and deterministic fallback.
 
-```bash
-cd backend
-python3.12 -m venv .venv  # Python 3.11-3.13 recommended; this build was verified on 3.12
-source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
+## Demo Story
 
-Frontend:
+The seed demo is an inverting op-amp amplifier:
 
-```bash
-cd frontend
-npm install
-npm run dev
-```
+1. Rin = 10 kOhm and Rf = 47 kOhm.
+2. Expected gain is -4.7.
+3. Simulation looks correct.
+4. Bench output is stuck near +12 V.
+5. CircuitSage compares expected vs observed behavior, asks for the non-inverting input voltage, then ranks the floating reference input fault from the catalog.
 
-Open `http://localhost:5173`.
-
-## Ollama Setup
+## Ollama
 
 ```bash
 ollama serve
@@ -84,88 +43,40 @@ export OLLAMA_BASE_URL=http://localhost:11434
 bash scripts/check_ollama.sh
 ```
 
-The model tag is configurable via `OLLAMA_MODEL`, but the default is `gemma3:4b` until a newer published Ollama tag is verified.
+If Ollama or the model is unavailable, the UI shows an amber Gemma status banner and the backend returns `gemma_status: deterministic_fallback`.
 
-## Demo Flow
-
-1. Click **Load Op-Amp Demo**.
-2. Review the seeded manual, netlist, waveform CSVs, and measurements.
-3. Click **Start Bench** and open the QR/Bench Mode link.
-4. Add `V_noninv = 2.8 V DC` from Bench Mode or Studio.
-5. Run diagnosis again.
-6. Generate the post-lab reflection report.
-
-## Companion Mode
-
-Open `http://localhost:5173/companion` for the real working-buddy mode.
-
-What it does:
-
-- asks the browser for screen/window sharing permission,
-- keeps the shared Tinkercad, LTspice, MATLAB, Simulink, plot, or lab-manual window visible inside CircuitSage,
-- captures the current frame on demand,
-- can auto-sample frames while watching,
-- sends the screenshot plus your question to `/api/companion/analyze`,
-- uses Ollama/Gemma vision if the configured model supports images,
-- falls back to workspace-specific guidance when Gemma is unavailable,
-- can save snapshots back into a CircuitSage lab session.
-
-The browser version cannot directly click native apps like LTspice or MATLAB. It can inspect the shared screen, explain what to check, and produce concrete next actions. True OS-level clicking would require an Electron/Tauri desktop agent with accessibility permissions.
-
-## macOS Desktop Companion
-
-The desktop target lives in `apps/desktop`.
+## Commands
 
 ```bash
-cd apps/desktop
-npm install
-npm run dev
+make install   # backend venv, npm workspaces, optional Ollama pull
+make demo      # backend in background, frontend in foreground
+make test      # backend pytest, frontend build, desktop check, iOS typecheck
+make lint      # ruff when installed, frontend/iOS TypeScript checks
+make clean     # remove local env/build artifacts
 ```
 
-It provides:
+## Tracks
 
-- always-on-top companion window,
-- macOS screen/window source picker,
-- live thumbnail polling of LTspice, MATLAB, Tinkercad, browser, or any visible window,
-- global shortcut prompt: `CommandOrControl+Shift+Space`,
-- tray/menu-bar persistence so closing the window keeps the buddy running,
-- current-window selection using the frontmost macOS app/window name,
-- glowing watch/listen state,
-- typed or voice prompt entry,
-- screenshot-to-Gemma analysis through the FastAPI backend,
-- screen-recording permission shortcut,
-- accessibility permission shortcut,
-- guarded AppleScript helpers for future click/type automation.
+- Future of Education: circuit debugging support for students who do not have one-on-one lab help.
+- Digital Equity & Inclusivity: local-first fallback and phone evidence capture for low-resource lab setups.
+- Safety: low-voltage educational guidance with refusal paths for mains/high-voltage debugging.
 
-Set `CIRCUITSAGE_API_URL` if your backend is not on `http://127.0.0.1:8000`.
+## Build Phases
 
-## iOS Bench Companion
+- Phase 0, hygiene and truthfulness: [docs/WINNING_BUILD_PLAN.md](docs/WINNING_BUILD_PLAN.md)
+- Phase 1, general circuit intelligence: [docs/WINNING_BUILD_PLAN.md](docs/WINNING_BUILD_PLAN.md)
+- Phase 2, RAG and vision path: [docs/WINNING_BUILD_PLAN.md](docs/WINNING_BUILD_PLAN.md)
+- Phase 3, dataset and fine-tune scaffold: [train/README.md](train/README.md)
+- Native app path: [docs/NATIVE_APPS.md](docs/NATIVE_APPS.md)
 
-The iOS target lives in `apps/ios`.
+## On-Device Path
 
-```bash
-cd apps/ios
-npm install
-npm run ios
-```
+The iOS build in [apps/ios](apps/ios) is the bench-side path: capture photos of breadboards, oscilloscopes, and multimeter readings, attach them to a CircuitSage session, and send them to the same `/api/companion/analyze` pipeline used by web and desktop.
 
-It provides:
+## Fine-Tune
 
-- camera capture for breadboard, oscilloscope, and multimeter evidence,
-- photo-library attachment,
-- backend URL field for your Mac’s LAN IP,
-- optional CircuitSage session attachment,
-- snapshot saving into the backend,
-- same `/api/companion/analyze` Gemma flow as desktop and web.
+The fine-tune workflow lives in [train/README.md](train/README.md). Phase 3 generates the synthetic circuit diagnosis dataset, validation script, Unsloth notebook, and Ollama Modelfile path.
 
-When testing on a physical iPhone, use your Mac’s local network IP instead of `127.0.0.1`.
-
-## Safety
+## Safety Scope
 
 CircuitSage is for low-voltage educational circuits: op-amp labs, RC filters, voltage dividers, Arduino-style circuits, and signal-generator/oscilloscope exercises. It refuses detailed live debugging for mains, wall outlets, SMPS primary sides, CRT/flyback circuits, microwave ovens, EV packs, or large capacitor banks.
-
-## Hackathon Tracks
-
-- Primary: Future of Education
-- Secondary: Digital Equity & Inclusivity
-- Secondary: Safety & Trust
