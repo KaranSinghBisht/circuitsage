@@ -64,6 +64,11 @@ def _artifact_kind(filename: str, provided: str | None = None) -> str:
     if suffix == ".csv":
         return "waveform_csv"
     if suffix in {".png", ".jpg", ".jpeg", ".webp"}:
+        lowered = filename.lower()
+        if "breadboard" in lowered:
+            return "breadboard"
+        if "scope" in lowered or "oscilloscope" in lowered:
+            return "oscilloscope"
         return "image"
     if suffix == ".m":
         return "matlab"
@@ -381,9 +386,9 @@ async def seed_op_amp_demo() -> dict:
             ("waveform_csv", "expected_waveform.csv"),
             ("waveform_csv", "observed_saturated_waveform.csv"),
             ("note", "student_question.txt"),
-            ("image", "scope_saturated_placeholder.png"),
-            ("image", "breadboard_placeholder.png"),
-            ("image", "fixed_scope_placeholder.png"),
+            ("oscilloscope", "scope_saturated_placeholder.png"),
+            ("breadboard", "breadboard_disconnected.png"),
+            ("oscilloscope", "fixed_scope_placeholder.png"),
         ],
         measurements=[
             MeasurementCreate(label="Vout", value=11.8, unit="V", mode="DC", context="Output stuck near positive rail"),

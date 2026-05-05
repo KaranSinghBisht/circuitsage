@@ -534,6 +534,8 @@ function UploadPanel({ sessionId, onDone, compact = false }: { sessionId: string
     <div className={compact ? "upload compact" : "upload"}>
       <select value={kind} onChange={(event) => setKind(event.target.value)}>
         <option value="image">Image</option>
+        <option value="breadboard">Breadboard</option>
+        <option value="oscilloscope">Oscilloscope</option>
         <option value="manual">Manual</option>
         <option value="netlist">Netlist</option>
         <option value="waveform_csv">Waveform CSV</option>

@@ -14,6 +14,7 @@ from ..tools.parse_netlist import parse_netlist_file
 from ..tools.rag import retrieve
 from ..tools.report_builder import generate_report
 from ..tools.safety_check import safety_check
+from ..tools.vision import describe_artifact
 from ..tools.waveform_analysis import analyze_waveform_csv
 from .fault_catalog import build_catalog_diagnosis
 from .ollama_client import OllamaClient, parse_json_response
@@ -227,6 +228,14 @@ async def diagnose_session(session_id: str, user_message: str | None = None) -> 
     tool_calls.append(_tool_call("compare_expected_vs_observed", started, comparison))
 
     fallback = build_catalog_diagnosis(session, netlist, waveform, comparison, evidence_measurements, safety)
+    vision_results: list[dict[str, Any]] = []
+    vision_artifacts = [artifact for artifact in artifacts if artifact["kind"] in {"breadboard", "oscilloscope"}]
+    for artifact in list(reversed(vision_artifacts))[:2]:
+        started = time.perf_counter()
+        vision_result = await describe_artifact(artifact, settings.ollama_base_url, settings.ollama_vision_model)
+        vision_results.append(vision_result)
+        status = "ok" if vision_result.get("mode") == "ollama_gemma_vision" else "fallback"
+        tool_calls.append(_tool_call("describe_artifact", started, vision_result, status=status))
     started = time.perf_counter()
     top_fault = (fallback.get("likely_faults") or [{}])[0]
     retrieve_query = " ".join(
@@ -260,6 +269,7 @@ async def diagnose_session(session_id: str, user_message: str | None = None) -> 
         "netlist": netlist,
         "waveform": waveform,
         "manual": manual,
+        "vision": vision_results,
         "comparison": comparison,
         "deterministic_diagnosis": fallback,
         "student_message": user_message,

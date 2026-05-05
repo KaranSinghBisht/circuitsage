@@ -4,7 +4,17 @@ from pydantic import BaseModel, Field
 
 
 SessionStatus = Literal["pre_lab", "bench", "diagnosing", "resolved", "archived"]
-ArtifactKind = Literal["manual", "netlist", "waveform_csv", "image", "matlab", "tinkercad_code", "note"]
+ArtifactKind = Literal[
+    "manual",
+    "netlist",
+    "waveform_csv",
+    "image",
+    "breadboard",
+    "oscilloscope",
+    "matlab",
+    "tinkercad_code",
+    "note",
+]
 
 
 class LabSessionCreate(BaseModel):
