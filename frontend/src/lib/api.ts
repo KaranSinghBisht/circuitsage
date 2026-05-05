@@ -98,6 +98,7 @@ export const api = {
     question: string;
     image_data_url?: string;
     app_hint: string;
+    source_title?: string;
     session_id?: string;
     save_snapshot?: boolean;
     lang?: string;

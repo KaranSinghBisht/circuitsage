@@ -5,6 +5,8 @@ const state = {
   timer: null,
   recognition: null,
   listening: false,
+  analyzing: false,
+  lastAutoAnalyzeAt: 0,
 };
 
 const $ = (id) => document.getElementById(id);
@@ -38,6 +40,30 @@ function setGlow(enabled) {
   document.body.classList.toggle("watch-glow", enabled);
 }
 
+function inferWorkspace(source) {
+  const text = `${source?.name || ""} ${source?.activeAppName || ""} ${source?.activeWindowName || ""}`.toLowerCase();
+  if (text.includes("tinkercad") || text.includes("arduino")) return "tinkercad";
+  if (text.includes("ltspice") || text.includes("spice")) return "ltspice";
+  if (text.includes("matlab") || text.includes("simulink")) return "matlab";
+  return "electronics_workspace";
+}
+
+function selectedAppHint() {
+  const requested = $("appHint").value;
+  return requested === "auto" ? inferWorkspace(state.selected) : requested;
+}
+
+function setWatchContext(prefix = "Watching") {
+  if (!state.selected) {
+    $("watchContext").textContent = "Waiting for a screen or window.";
+    return;
+  }
+  const sourceName = state.selected.name || "selected source";
+  const activeName = state.selected.activeAppName ? ` · active app: ${state.selected.activeAppName}` : "";
+  const workspace = selectedAppHint().replaceAll("_", " ");
+  $("watchContext").textContent = `${prefix}: ${sourceName}${activeName} · ${workspace}`;
+}
+
 function showCommandOverlay() {
   $("commandOverlay").classList.remove("hidden");
   $("quickQuestion").focus();
@@ -60,6 +86,7 @@ async function refreshSources() {
     $("sourceSelect").value = state.selected.id;
     updatePreview();
   }
+  setWatchContext("Selected");
   setStatus("ready");
 }
 
@@ -69,6 +96,7 @@ function updatePreview() {
   if (!state.selected) return;
   state.lastImage = state.selected.thumbnail;
   $("preview").src = state.lastImage;
+  setWatchContext("Selected");
 }
 
 async function refreshSelectedThumbnail() {
@@ -83,8 +111,8 @@ async function refreshSelectedThumbnail() {
   updatePreview();
 }
 
-async function selectActiveSource() {
-  setStatus("finding active", true);
+async function selectActiveSource(options = {}) {
+  if (!options.quiet) setStatus("finding active", true);
   const active = await window.circuitSage.getActiveWindow().catch(() => null);
   state.sources = await window.circuitSage.getSources();
   const app = active?.appName?.toLowerCase() || "";
@@ -102,26 +130,42 @@ async function selectActiveSource() {
     state.selected = match;
     updatePreview();
   }
-  setStatus(active?.appName ? `current: ${active.appName}` : "ready", Boolean(active?.appName));
+  setWatchContext(active?.appName ? "Following" : "Selected");
+  if (!options.quiet) setStatus(active?.appName ? `current: ${active.appName}` : "ready", Boolean(active?.appName));
 }
 
-async function analyze() {
+async function analyze(options = {}) {
+  if (state.analyzing) return;
+  state.analyzing = true;
+  let originalQuestion = "";
   setStatus("thinking", true);
   try {
-    await refreshSelectedThumbnail();
+    if ($("followActive").checked || options.followActive) {
+      await selectActiveSource({ quiet: true });
+    } else {
+      await refreshSelectedThumbnail();
+    }
+    originalQuestion = $("question").value;
+    if (options.passive) {
+      $("question").value = "Watch this workspace and summarize what changed, what looks risky, and the next useful check.";
+    }
     const result = await window.circuitSage.analyze({
       apiUrl: $("apiUrl").value,
       question: $("question").value,
       image_data_url: state.lastImage,
-      app_hint: $("appHint").value,
+      app_hint: selectedAppHint(),
+      source_title: state.selected?.name || "",
       session_id: $("sessionId").value,
       save_snapshot: $("saveSnapshot").checked,
     });
     renderResult(result);
-    setStatus("ready");
+    setStatus($("autoWatch").checked ? "watching" : "ready", $("autoWatch").checked);
   } catch (error) {
     $("result").innerHTML = `<h2>Could not analyze</h2><p class="error">${escapeHtml(error.message || error)}</p>`;
     setStatus("error");
+  } finally {
+    if (options.passive) $("question").value = originalQuestion;
+    state.analyzing = false;
   }
 }
 
@@ -137,7 +181,17 @@ function setAutoWatch(enabled) {
   state.timer = null;
   if (enabled) {
     state.timer = window.setInterval(() => {
-      refreshSelectedThumbnail().catch(() => undefined);
+      const refresh = $("followActive").checked ? selectActiveSource({ quiet: true }) : refreshSelectedThumbnail();
+      refresh
+        .then(() => {
+          const shouldAutoAnalyze = $("autoInsight").checked && Date.now() - state.lastAutoAnalyzeAt > 25000;
+          if (shouldAutoAnalyze) {
+            state.lastAutoAnalyzeAt = Date.now();
+            return analyze({ passive: true, followActive: true });
+          }
+          return undefined;
+        })
+        .catch(() => undefined);
     }, 3500);
     setStatus("watching", true);
     setGlow(true);
@@ -189,6 +243,11 @@ $("activeSource").addEventListener("click", () => selectActiveSource().catch(con
 $("sourceSelect").addEventListener("change", updatePreview);
 $("analyze").addEventListener("click", () => analyze().catch(console.error));
 $("autoWatch").addEventListener("change", (event) => setAutoWatch(event.target.checked));
+$("followActive").addEventListener("change", () => setWatchContext($("followActive").checked ? "Following" : "Selected"));
+$("autoInsight").addEventListener("change", () => {
+  state.lastAutoAnalyzeAt = 0;
+  if ($("autoWatch").checked && $("autoInsight").checked) analyze({ passive: true, followActive: true }).catch(console.error);
+});
 $("alwaysTop").addEventListener("change", (event) => window.circuitSage.setAlwaysOnTop(event.target.checked));
 $("compactMode").addEventListener("change", (event) => window.circuitSage.setCompact(event.target.checked));
 $("screenPerm").addEventListener("click", () => window.circuitSage.openPermissions("screen"));

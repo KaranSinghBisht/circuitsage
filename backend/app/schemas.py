@@ -109,6 +109,7 @@ class CompanionAnalyzeRequest(BaseModel):
     question: str = ""
     image_data_url: str | None = None
     app_hint: str = "auto"
+    source_title: str = ""
     session_id: str | None = None
     save_snapshot: bool = False
     lang: str = "en"

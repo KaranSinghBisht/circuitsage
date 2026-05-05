@@ -37,6 +37,7 @@ label { display: grid; gap: 5px; color: var(--muted); font-size: 12px; font-weig
 .status { display: inline-flex; gap: 7px; align-items: center; text-transform: uppercase; font-weight: 900; }
 .status::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--red); }
 .status.live::before { background: var(--accent); box-shadow: 0 0 14px rgba(103, 242, 169, .7); }
+.watch-context { color: var(--muted); font-size: 12px; line-height: 1.35; }
 #preview { width: 100%; min-height: 150px; max-height: 240px; object-fit: contain; background: #050706; border: 1px solid #26332c; }
 .result-card { line-height: 1.42; }
 .result-card strong { color: var(--accent); }

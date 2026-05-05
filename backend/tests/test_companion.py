@@ -20,6 +20,20 @@ def test_companion_analyze_returns_workspace_specific_fallback_without_image():
     assert data["next_actions"]
 
 
+def test_companion_uses_source_title_for_workspace_guess():
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/companion/analyze",
+            json={
+                "question": "What should I check next?",
+                "app_hint": "auto",
+                "source_title": "Draft1.asc - LTspice XVII",
+            },
+        )
+    assert response.status_code == 200
+    assert response.json()["workspace"] == "ltspice"
+
+
 def test_companion_analyze_refuses_mains():
     with TestClient(app) as client:
         response = client.post(

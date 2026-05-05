@@ -135,8 +135,8 @@ def _image_base64_from_data_url(data_url: str | None) -> str | None:
     return data_url.split(",", 1)[1] if "," in data_url else data_url
 
 
-def _guess_workspace(app_hint: str, question: str) -> str:
-    text = f"{app_hint} {question}".lower()
+def _guess_workspace(app_hint: str, question: str, source_title: str = "") -> str:
+    text = f"{app_hint} {source_title} {question}".lower()
     if "tinkercad" in text or "arduino" in text:
         return "tinkercad"
     if "ltspice" in text or "spice" in text or ".tran" in text or ".op" in text:
@@ -254,7 +254,7 @@ async def companion_analyze(payload: CompanionAnalyzeRequest) -> dict:
     safety = safety_check(payload.question)
     image_bytes = _decode_data_url(payload.image_data_url)
     image_base64 = _image_base64_from_data_url(payload.image_data_url)
-    workspace = _guess_workspace(payload.app_hint, payload.question)
+    workspace = _guess_workspace(payload.app_hint, payload.question, payload.source_title)
     saved_artifact = None
 
     if payload.session_id and payload.save_snapshot and image_bytes:
@@ -284,6 +284,9 @@ Student question:
 
 App hint:
 {payload.app_hint}
+
+Source/window title:
+{payload.source_title or "unknown"}
 
 Requested language:
 {payload.lang}

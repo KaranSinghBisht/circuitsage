@@ -14,6 +14,7 @@ Request:
   "question": "What should I check next?",
   "image_data_url": "data:image/jpeg;base64,...",
   "app_hint": "auto | tinkercad | ltspice | matlab | electronics_workspace",
+  "source_title": "optional active window or captured source title",
   "session_id": "optional CircuitSage lab session id",
   "save_snapshot": true
 }
@@ -33,4 +34,3 @@ Response:
   "confidence": "low | medium | high"
 }
 ```
-
