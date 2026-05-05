@@ -272,17 +272,34 @@ Rules:
         return {**fallback, "saved_artifact": saved_artifact}
 
     try:
-        chat_result = await OllamaClient(settings.ollama_base_url, settings.ollama_vision_model).chat(
+        vision_result = await OllamaClient(settings.ollama_base_url, settings.ollama_vision_model).chat(
             [
                 {
                     "role": "user",
-                    "content": prompt,
+                    "content": f"{prompt}\n\nFirst describe the visible screen evidence and next actions in plain text.",
                     "images": [image_base64],
                 }
             ],
+            format_json=False,
+        )
+        vision_text = vision_result["content"]
+        structure_prompt = f"""
+Convert this CircuitSage Companion vision analysis into the required compact JSON schema.
+
+Original student question:
+{payload.question}
+
+Vision analysis:
+{vision_text}
+
+Return only JSON with keys:
+workspace, visible_context, answer, next_actions, can_click, safety, confidence
+"""
+        structured_result = await OllamaClient(settings.ollama_base_url, settings.ollama_vision_model).chat(
+            [{"role": "user", "content": structure_prompt}],
             format_json=True,
         )
-        result = chat_result["content"]
+        result = structured_result["content"]
         parsed = parse_json_response(result)
         if not parsed:
             return {**fallback, "mode": "gemma_text_unparsed", "raw": result[:1200], "saved_artifact": saved_artifact}
