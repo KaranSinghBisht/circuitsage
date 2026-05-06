@@ -205,6 +205,12 @@
       "type": "file"
     },
     {
+      "path": "backend/app/services/embedder.py",
+      "accessCount": 2,
+      "lastAccessed": 1778050215757,
+      "type": "file"
+    },
+    {
       "path": "SPEC.md",
       "accessCount": 1,
       "lastAccessed": 1777982926100,
@@ -382,12 +388,6 @@
       "path": "backend/app/tools/vision.py",
       "accessCount": 1,
       "lastAccessed": 1777997684528,
-      "type": "file"
-    },
-    {
-      "path": "backend/app/services/embedder.py",
-      "accessCount": 1,
-      "lastAccessed": 1777997686083,
       "type": "file"
     },
     {
