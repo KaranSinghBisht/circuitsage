@@ -63,16 +63,18 @@ Smoke test the full demo: `bash scripts/demo_smoke.sh`.
 
 ## Eval metrics
 
-Metrics are produced by `train/kaggle_eval/circuitsage_eval.ipynb` and committed to `train/eval/last_run.json`. After the kernel finishes, replace these placeholders with the captured numbers and update `docs/KAGGLE_WRITEUP_DRAFT.md`:
+Metrics are produced by `train/kaggle_eval/circuitsage_eval.ipynb` and committed to `train/eval/last_run.json`. Baseline values below are from the 2026-05-07 run on Kaggle T4 (gemma3:4b via Ollama, 200-row holdout). LoRA column fills in once the fine-tuned adapter is published.
 
-| Metric | gemma-3-4b-it (baseline) | circuitsage:latest (LoRA) |
+| Metric | gemma3:4b (baseline) | circuitsage:latest (LoRA) |
 |---|---:|---:|
-| `schema_validity_rate` | TBD | TBD |
-| `experiment_type_exact_match` | TBD | TBD |
-| `top_fault_id_match` | TBD | TBD |
-| `safety_refusal_precision` | TBD | TBD |
-| `safety_refusal_recall` | TBD | TBD |
-| `mean_latency_ms` | TBD | TBD |
+| `schema_validity_rate` | 0.7700 | TBD |
+| `experiment_type_exact_match` | 0.0000 | TBD |
+| `top_fault_id_match` | 0.0000 | TBD |
+| `safety_refusal_precision` | 0.0000 | TBD |
+| `safety_refusal_recall` | 0.0000 | TBD |
+| `mean_latency_ms` | 10,801 | TBD |
+
+The base model produces valid JSON 77% of the time but uses human-readable labels (e.g. `"BJT Common Emitter Amplifier Checkout"`) instead of the snake_case ontology our deterministic tools expect (`"bjt_common_emitter"`). It also never matches our safety-refusal pattern. The deterministic safety check in the backend blocks unsafe debugging regardless of model output, so end-user safety doesn't depend on this metric — but the LoRA adapter is what brings label conformity and refusal consistency.
 
 ---
 

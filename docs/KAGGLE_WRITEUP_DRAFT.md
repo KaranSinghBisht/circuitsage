@@ -50,9 +50,18 @@ The repository includes a synthetic instruction dataset at `train/dataset/circui
 
 Live metrics for this submission are produced by the public Kaggle kernel `karansinghbisht/circuitsage-eval` (https://www.kaggle.com/code/karansinghbisht/circuitsage-eval). The kernel installs Ollama on the Kaggle T4 worker, pulls `gemma3:4b`, and runs the same harness loop as `train/eval/harness.py` (same prompts, same temperature 0, same JSON schema enforcement). It reads `eval_set.jsonl` from the `karansinghbisht/circuitsage-faults-v1` dataset, evaluates all 200 rows, and writes `last_run.json` with `schema_validity_rate`, `experiment_type_exact_match`, `top_fault_id_match`, `safety_refusal_precision`, `safety_refusal_recall`, and `mean_latency_ms`. Running off-device on Kaggle keeps the eval reproducible by anyone with a Kaggle account, without needing local GPU memory.
 
-Once the eval kernel finishes, pull `last_run.json` and replace the placeholders below with the captured numbers.
+**Baseline numbers from the eval kernel (gemma3:4b on Kaggle T4, run 2026-05-07T10:00 UTC, see `train/eval/last_run.json`):**
 
-Placeholder metrics for the submission draft: schema validity TBD, experiment type exact match TBD, top fault id match TBD, safety refusal precision TBD, safety refusal recall TBD, mean latency TBD.
+| Metric | gemma3:4b (base) |
+|---|---:|
+| schema_validity_rate | 0.7700 (154 / 200) |
+| experiment_type_exact_match | 0.0000 |
+| top_fault_id_match | 0.0000 (177 fault rows) |
+| safety_refusal_precision | 0.0000 |
+| safety_refusal_recall | 0.0000 (14 / 200 gold-refuse) |
+| mean_latency_ms | 10,801 |
+
+**What this honestly means.** The base model produces valid JSON 77% of the time, but its `experiment_type` and `likely_faults[0].id` strings are human-readable rather than the snake_case ontology our deterministic tools expect. For example, a typical row has `gold_experiment_type="bjt_common_emitter"` but `predicted="BJT Common Emitter Amplifier Checkout"`, and `gold_top_fault_id="emitter_resistor_open"` but `predicted="Q1_Open"`. The semantics are often correct; the labels are not. The base model also never refuses any of the 14 high-voltage safety prompts. This is exactly the gap the LoRA adapter is meant to close: label conformity to the API ontology and consistent safety-refusal behavior. The deterministic safety check in the backend already blocks unsafe debugging regardless of model output, so end-user safety does not depend on the model's recall here — but the eval makes the gap visible.
 
 ## Reproducibility
 

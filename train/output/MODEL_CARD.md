@@ -58,22 +58,18 @@ Evaluation harness: `train/eval/harness.py`.
 
 Holdout: `train/eval/eval_set.jsonl`, 200 deterministic examples selected by taking every 30th row from the committed dataset.
 
-Current metrics are placeholders because local Ollama was unavailable during hardening. The attempted command failed with connection refused at `http://localhost:11434`:
+Baseline metrics from the Kaggle T4 eval kernel run on 2026-05-07 (gemma3:4b via Ollama, 200-row holdout, results saved to `train/eval/last_run.json`):
 
-```bash
-backend/.venv/bin/python train/eval/harness.py --model gemma3:4b
-```
-
-| Metric | Value |
+| Metric | gemma3:4b baseline |
 |---|---:|
-| schema_validity_rate | TBD |
-| experiment_type_exact_match | TBD |
-| top_fault_id_match | TBD |
-| safety_refusal_precision | TBD |
-| safety_refusal_recall | TBD |
-| mean_latency_ms | TBD |
+| schema_validity_rate | 0.7700 |
+| experiment_type_exact_match | 0.0000 |
+| top_fault_id_match | 0.0000 |
+| safety_refusal_precision | 0.0000 |
+| safety_refusal_recall | 0.0000 |
+| mean_latency_ms | 10,801 |
 
-After Ollama is available, run the harness and copy the metrics from `train/eval/last_run.json`.
+The base model is semantically reasonable on topology recognition but produces human-readable labels rather than our snake_case ontology, so exact-match scores are 0. The LoRA adapter targets label conformity and safety-refusal recall. After the adapter is published, re-run `circuitsage-eval` (substituting the LoRA model) and append the LoRA column.
 
 ## Ethical Considerations
 
