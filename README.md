@@ -24,6 +24,15 @@ make install && make demo
 
 `make demo` starts the FastAPI backend, opens the web app, and runs the Vite dev server. Load the op-amp demo from `/`, open the screen-aware buddy at `/companion`, or seed classroom data with `make demo-seed`.
 
+## For Judges
+
+No local install required:
+
+- **Writeup** — https://www.kaggle.com/code/karansinghbisht/circuitsage-writeup
+- **Eval kernel (real numbers)** — https://www.kaggle.com/code/karansinghbisht/circuitsage-eval *(Gemma 3 4B via Ollama on T4, full 200-row eval, click "Run" to reproduce)*
+- **Dataset** — https://www.kaggle.com/datasets/karansinghbisht/circuitsage-faults-v1 *(6,000 rows, 4,978 unique prompts)*
+- **Hosted demo** — see [docs/FLY_DEPLOY.md](docs/FLY_DEPLOY.md) (URL added once deploy lands)
+
 ## What's Inside
 
 - Studio: session workspace for artifacts, measurements, netlist preview, diagnosis, reports, and QR handoff at `/studio/:id`.

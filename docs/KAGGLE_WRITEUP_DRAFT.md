@@ -48,7 +48,7 @@ Datasheet support is deliberately practical. If a parsed netlist contains model 
 
 The repository includes a synthetic instruction dataset at `train/dataset/circuitsage_qa.jsonl` with 6,000 structured examples. Validation checks schema shape, topology distribution, duplicate prompts, safety ratio, and negative-evidence ratio. The eval harness in `train/eval/harness.py` creates a deterministic 200-example holdout by taking every 30th dataset row.
 
-Live metrics for this submission are produced by the public Kaggle kernel `karansinghbisht/circuitsage-eval` (https://www.kaggle.com/code/karansinghbisht/circuitsage-eval), which mirrors `train/eval/harness.py` against `google/gemma-3-4b-it` on a Kaggle T4 GPU because local Ollama is impractical on a 16 GB Mac. The kernel reads `eval_set.jsonl` from `karansinghbisht/circuitsage-faults-v1`, runs greedy decoding over all 200 examples, and writes `last_run.json` with `schema_validity_rate`, `experiment_type_exact_match`, `top_fault_id_match`, `safety_refusal_precision`, `safety_refusal_recall`, and `mean_latency_ms`.
+Live metrics for this submission are produced by the public Kaggle kernel `karansinghbisht/circuitsage-eval` (https://www.kaggle.com/code/karansinghbisht/circuitsage-eval). The kernel installs Ollama on the Kaggle T4 worker, pulls `gemma3:4b`, and runs the same harness loop as `train/eval/harness.py` (same prompts, same temperature 0, same JSON schema enforcement). It reads `eval_set.jsonl` from the `karansinghbisht/circuitsage-faults-v1` dataset, evaluates all 200 rows, and writes `last_run.json` with `schema_validity_rate`, `experiment_type_exact_match`, `top_fault_id_match`, `safety_refusal_precision`, `safety_refusal_recall`, and `mean_latency_ms`. Running off-device on Kaggle keeps the eval reproducible by anyone with a Kaggle account, without needing local GPU memory.
 
 Once the eval kernel finishes, pull `last_run.json` and replace the placeholders below with the captured numbers.
 
@@ -81,11 +81,13 @@ The next build targets real LTspice/MATLAB importers, richer schematic recogniti
 
 ## Links
 
-Repository: `https://github.com/<org>/circuitsage` (public on submission day)
+Repository: https://github.com/KaranSinghBisht/circuitsage
 
-Demo video: `https://youtu.be/<demo-video-placeholder>`
+Demo video: linked here on submission day; the `/press` route in the app is wired as B-roll.
 
 Kaggle dataset (synthetic Q&A): https://www.kaggle.com/datasets/karansinghbisht/circuitsage-faults-v1
+
+Kaggle eval kernel (Gemma 3 4B via Ollama on T4): https://www.kaggle.com/code/karansinghbisht/circuitsage-eval
 
 Kaggle training kernel (Unsloth LoRA on Gemma 3 1B): https://www.kaggle.com/code/karansinghbisht/circuitsage-gemma-lora
 
