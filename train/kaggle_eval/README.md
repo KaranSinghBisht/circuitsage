@@ -13,7 +13,7 @@ Runs `train/eval/harness.py`-equivalent metrics against `google/gemma-3-4b-it` o
 ## Inputs
 
 - Kaggle dataset: `karansinghbisht/circuitsage-faults-v1` (auto-attached via `kernel-metadata.json`). Provides `eval_set.jsonl`.
-- Kaggle Secret: **`HF_TOKEN`** — Gemma 3 weights are HF-gated. Without it the model load step fails. Add via Kaggle → Add-ons → Secrets.
+- No Kaggle Secrets required. The kernel installs Ollama on the Kaggle worker and pulls `gemma3:4b` from Ollama's registry (no HF gate).
 
 ## Push
 
@@ -36,9 +36,9 @@ The downloaded `last_run.json` matches the schema produced by `train/eval/harnes
 
 ## Expected runtime
 
-- Model load (4-bit nf4): ~2 minutes.
-- 200 examples at greedy decoding, max_new_tokens=512: ~10–15 minutes on T4.
-- Total: under 20 minutes per run.
+- Ollama install + pull `gemma3:4b` (~3.3 GB): ~2 minutes.
+- 200 examples at temperature 0, format=json on T4: ~10–20 minutes.
+- Total: under 25 minutes per run.
 
 ## Re-running with the fine-tuned model
 
