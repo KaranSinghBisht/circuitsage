@@ -9,7 +9,7 @@ python3 train/dataset/build.py
 python3 train/dataset/validate.py
 ```
 
-The committed `train/dataset/circuitsage_qa.jsonl` has 5,200 validated chat examples using the same structured diagnosis schema as the runtime API.
+The committed `train/dataset/circuitsage_qa.jsonl` has 6,000 validated chat examples (4,978 unique prompts after deduplication) using the same structured diagnosis schema as the runtime API.
 
 ## Training
 

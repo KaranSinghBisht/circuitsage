@@ -48,7 +48,9 @@ Datasheet support is deliberately practical. If a parsed netlist contains model 
 
 The repository includes a synthetic instruction dataset at `train/dataset/circuitsage_qa.jsonl` with 6,000 structured examples. Validation checks schema shape, topology distribution, duplicate prompts, safety ratio, and negative-evidence ratio. The eval harness in `train/eval/harness.py` creates a deterministic 200-example holdout by taking every 30th dataset row.
 
-Current eval metrics are placeholders because local Ollama was not reachable during the C1 acceptance run on May 6, 2026. The command `backend/.venv/bin/python train/eval/harness.py --model gemma3:4b` failed with connection refused at `localhost:11434`. The harness imports cleanly and the 200-row eval set is committed. Once Ollama is running, the harness records `schema_validity_rate`, `experiment_type_exact_match`, `top_fault_id_match`, `safety_refusal_precision`, `safety_refusal_recall`, and `mean_latency_ms` to `train/eval/last_run.json`.
+Live metrics for this submission are produced by the public Kaggle kernel `karansinghbisht/circuitsage-eval` (https://www.kaggle.com/code/karansinghbisht/circuitsage-eval), which mirrors `train/eval/harness.py` against `google/gemma-3-4b-it` on a Kaggle T4 GPU because local Ollama is impractical on a 16 GB Mac. The kernel reads `eval_set.jsonl` from `karansinghbisht/circuitsage-faults-v1`, runs greedy decoding over all 200 examples, and writes `last_run.json` with `schema_validity_rate`, `experiment_type_exact_match`, `top_fault_id_match`, `safety_refusal_precision`, `safety_refusal_recall`, and `mean_latency_ms`.
+
+Once the eval kernel finishes, pull `last_run.json` and replace the placeholders below with the captured numbers.
 
 Placeholder metrics for the submission draft: schema validity TBD, experiment type exact match TBD, top fault id match TBD, safety refusal precision TBD, safety refusal recall TBD, mean latency TBD.
 

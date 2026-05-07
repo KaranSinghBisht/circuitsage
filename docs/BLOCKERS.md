@@ -54,3 +54,10 @@
 ## Live agent loop on local CPU (2026-05-06)
 
 - `gemma3:4b` and `gemma4:e4b` are both pulled in local Ollama (3.3 GB and 10 GB respectively). `gemma3:4b` rejects the `tools=` parameter with HTTP 400/404; the `OllamaClient.chat` fallback drops `tools` and retries, giving `gemma_status: ollama_gemma_single_shot`. `gemma4:e4b` accepts `tools=` natively but inference on M-series CPU at 68%/32% CPU/GPU split reaches ~5 tokens/sec — a full agent loop times out the 300 s read timeout in two iterations on the op-amp seed. The deterministic fallback path returns the correct top fault `floating_noninv_input` with the full 8-step tool-call timeline, so the demo is honest. Faster live agentic-mode acceptance requires a CUDA host or Apple Silicon Metal-tuned Ollama build.
+
+## Submission week (2026-05-07)
+
+- **Local Ollama declined for RAM**: running `gemma3:4b` and especially `gemma4:e4b` together (~13 GB) hangs the user's Mac. Eval runs are moved off-device to a new Kaggle GPU kernel at `train/kaggle_eval/circuitsage_eval.ipynb`. User runs `kaggle kernels push -p train/kaggle_eval` to publish; the kernel needs Kaggle Secret `HF_TOKEN` (gemma-3 is HF-gated). Output `last_run.json` is downloaded back into the writeup.
+- **GitHub push pending workflow scope**: 75 unpushed local commits on `master`; remote `origin` (https://github.com/KaranSinghBisht/circuitsage.git) was created but rejected the push because the OAuth token lacks the `workflow` scope required to upload `.github/workflows/ci.yml`. User must run `gh auth refresh -h github.com -s workflow` (interactive browser flow), then re-run `git push -u origin master`.
+- **HuggingFace publication**: dataset card (`train/dataset/DATASET_CARD.md`) and model card (`train/output/MODEL_CARD.md`) are ready. User runs `HF_TOKEN=<token> python scripts/hf_upload_dataset.py` and `HF_TOKEN=<token> python scripts/hf_upload_model.py` to publish to `huggingface.co/karansinghbisht/circuitsage-faults` and `circuitsage-lora`.
+- **Release tag**: after the `git push` lands, run `git tag -a v1.0.0-submission -m "Gemma 4 Good Hackathon submission"` and `git push origin v1.0.0-submission`.

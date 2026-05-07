@@ -21,6 +21,8 @@ There are 7 items. Items 1–3 are blockers. Items 4–7 close credibility gaps 
 ### Why
 `train/dataset/circuitsage_qa.jsonl` has **5,200 rows but only 94 unique user prompts** (duplication ratio 55×). `train/dataset/build.py` cycles through `(topology × fault × 5 symptoms × 5 measurements)` and emits the cartesian product. There is no real paraphrase augmentation despite an `augment.py` file. Fine-tuning on this will memorize 94 prompts, not learn circuit reasoning. The Unsloth Prize lane explicitly evaluates the *quality* of the fine-tune.
 
+> **Resolved 2026-05-07:** dataset rebuilt to **6,000 rows / 4,978 unique prompts** via paraphrase augmentation in `augment.py`. Current state captured in `train/README.md` and `train/dataset/DATASET_CARD.md`.
+
 ### Files
 - modify `train/dataset/build.py`
 - modify `train/dataset/augment.py`

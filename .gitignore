@@ -25,3 +25,12 @@ apps/desktop/out/
 
 # Environment
 .env
+
+# OMC orchestration state (per-session churn)
+.omc/state/agent-replay-*.jsonl
+.omc/state/idle-notif-cooldown.json
+.omc/state/last-tool-error.json
+.omc/state/mission-state.json
+.omc/state/subagent-tracking.json
+.omc/state/checkpoints/
+.omc/project-memory.json
