@@ -85,7 +85,10 @@ export function Companion() {
     }
   }
 
-  async function runAction(action: CompanionTypedAction) {
+  async function runAction(action: CompanionTypedAction, idx: number) {
+    // Key by index so two actions with identical labels don't overwrite
+    // each other in actionResults.
+    const key = `${idx}::${action.label}`;
     if (action.action === "capture") {
       analyzeCurrent().catch(() => undefined);
       return;
@@ -93,33 +96,40 @@ export function Companion() {
     if (action.action === "measurement") {
       setActionResults((prior) => ({
         ...prior,
-        [action.label]: { hint: "Open Bench Mode to enter this measurement, then re-ask.", args: action.args },
+        [key]: { hint: "Open Bench Mode to enter this measurement, then re-ask.", args: action.args },
       }));
       return;
     }
     const toolName = (action.args?.tool as string) || "";
     if (!toolName || !["score_faults", "lookup_datasheet", "retrieve_rag"].includes(toolName)) {
-      setActionResults((prior) => ({ ...prior, [action.label]: { error: "Unknown tool" } }));
+      setActionResults((prior) => ({ ...prior, [key]: { error: "Unknown tool" } }));
       return;
     }
     const { tool: _ignored, already_ran: _ran, ...args } = action.args as Record<string, unknown>;
-    setActionBusy(action.label);
+    setActionBusy(key);
     try {
       const response = await api.companionRunTool({
         tool: toolName as "score_faults" | "lookup_datasheet" | "retrieve_rag",
         args,
         session_id: analysis?.session_id || sessionId || undefined,
       });
-      setActionResults((prior) => ({ ...prior, [action.label]: response.result }));
+      setActionResults((prior) => ({ ...prior, [key]: response.result }));
     } catch (exc) {
       setActionResults((prior) => ({
         ...prior,
-        [action.label]: { error: exc instanceof Error ? exc.message : "tool failed" },
+        [key]: { error: exc instanceof Error ? exc.message : "tool failed" },
       }));
     } finally {
       setActionBusy(null);
     }
   }
+
+  // Hold the latest analyzeCurrent in a ref so the auto-analyze interval
+  // doesn't restart every keystroke (which would never let it fire steady).
+  const analyzeCurrentRef = useRef(analyzeCurrent);
+  useEffect(() => {
+    analyzeCurrentRef.current = analyzeCurrent;
+  });
 
   useEffect(() => {
     if (!stream) return undefined;
@@ -131,10 +141,14 @@ export function Companion() {
   }, [stream]);
 
   useEffect(() => {
-    if (!stream || !autoAnalyze || busy) return undefined;
-    const analyzeTimer = window.setInterval(() => analyzeCurrent().catch(() => undefined), 22000);
+    if (!stream || !autoAnalyze) return undefined;
+    const analyzeTimer = window.setInterval(() => {
+      // Read the latest analyzeCurrent through the ref so the timer keeps
+      // firing on a stable schedule even as inputs change.
+      analyzeCurrentRef.current().catch(() => undefined);
+    }, 22000);
     return () => window.clearInterval(analyzeTimer);
-  }, [stream, autoAnalyze, busy, question, appHint, sessionId, saveSnapshot]);
+  }, [stream, autoAnalyze]);
 
   const watching = Boolean(stream);
   return (
@@ -204,7 +218,7 @@ function CompanionResult({
   actionBusy,
 }: {
   analysis: CompanionAnalysis | null;
-  onAction: (action: CompanionTypedAction) => void;
+  onAction: (action: CompanionTypedAction, idx: number) => void;
   actionResults: Record<string, unknown>;
   actionBusy: string | null;
 }) {
@@ -222,27 +236,33 @@ function CompanionResult({
       <strong>{analysis.answer}</strong>
       {analysis.suspected_faults && analysis.suspected_faults.length > 0 && (
         <ul className="suspected-faults">
-          {analysis.suspected_faults.map((fault) => <li key={fault}>{fault}</li>)}
+          {analysis.suspected_faults.map((fault, i) => <li key={`${i}-${fault}`}>{fault}</li>)}
         </ul>
       )}
       {typedActions.length > 0 && (
         <div className="action-buttons">
           <span>{t.nextActions}</span>
           <div className="action-row">
-            {typedActions.map((action) => (
-              <button
-                key={action.label}
-                className="action-chip"
-                onClick={() => onAction(action)}
-                disabled={actionBusy === action.label}
-              >
-                <Play size={14} /> {actionBusy === action.label ? "…" : action.label}
-              </button>
-            ))}
+            {typedActions.map((action, idx) => {
+              const key = `${idx}::${action.label}`;
+              return (
+                <button
+                  key={key}
+                  className="action-chip"
+                  onClick={() => onAction(action, idx)}
+                  disabled={actionBusy === key}
+                >
+                  <Play size={14} /> {actionBusy === key ? "…" : action.label}
+                </button>
+              );
+            })}
           </div>
-          {Object.entries(actionResults).map(([label, value]) => (
-            <pre key={label} className="action-result"><strong>{label}</strong>{"\n"}{JSON.stringify(value, null, 2).slice(0, 1200)}</pre>
-          ))}
+          {Object.entries(actionResults).map(([key, value]) => {
+            const displayLabel = key.includes("::") ? key.split("::").slice(1).join("::") : key;
+            return (
+              <pre key={key} className="action-result"><strong>{displayLabel}</strong>{"\n"}{JSON.stringify(value, null, 2).slice(0, 1200)}</pre>
+            );
+          })}
         </div>
       )}
       {typedActions.length === 0 && (

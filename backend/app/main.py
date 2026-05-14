@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import base64
 import io
 import json
@@ -10,7 +11,7 @@ from collections import Counter
 from collections import deque
 from datetime import datetime, timezone
 from pathlib import Path
-from time import monotonic
+from time import monotonic, perf_counter
 from typing import Annotated
 
 import qrcode
@@ -60,10 +61,15 @@ app = FastAPI(title="CircuitSage API", version="0.1.0", lifespan=lifespan)
 settings = get_settings()
 _hosted_rate_buckets: dict[str, deque[float]] = {}
 
+# `allow_origins=["*"]` paired with `allow_credentials=True` is rejected by all
+# modern browsers per the CORS spec — credentialed requests silently fail. We
+# don't actually use cookies, so flip credentials off and keep the permissive
+# wildcard so the static-served frontend, the Electron renderer (file://), and
+# any judge who curls the API can all reach it.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -449,19 +455,47 @@ async def companion_analyze(payload: CompanionAnalyzeRequest) -> dict:
 
     # Safety screen before we touch the database. A high-voltage question
     # never gets persisted as a user message and never creates a session.
-    pre_safety = safety_check(payload.question or "")
+    # Combine the typed question with the source window title — a screenshot
+    # of "240V Mains Diagnostic.asc" with question="" must still refuse.
+    pre_safety_text = " ".join(
+        s for s in (payload.question or "", payload.source_title or "") if s
+    )
+    pre_safety = safety_check(pre_safety_text)
     if not pre_safety["allowed"]:
-        return await companion_orchestrator_analyze(
-            question=payload.question,
-            image_base64=None,  # do not relay the image either
-            workspace=workspace,
-            app_hint=payload.app_hint,
-            source_title=payload.source_title,
-            lang=payload.lang,
-            settings=settings,
-            saved_artifact=None,
-            prior_turns=[],
-        )
+        # Build the refusal response inline — we cannot defer to the orchestrator
+        # because its own safety_check only screens `question`, not source_title,
+        # and would let an empty-question + risky-window-title slip through.
+        return {
+            "mode": "safety_refusal",
+            "workspace": workspace,
+            "visible_context": "Screen analysis stopped because high-voltage or mains risk was detected in the question or source window title.",
+            "user_facing_answer": pre_safety["message"],
+            "answer": pre_safety["message"],
+            "next_actions": ["Power down and ask an instructor or qualified technician."],
+            "actions": [],
+            "suggested_actions": [],
+            "detected_topology": "unknown",
+            "detected_components": [],
+            "detected_measurements": [],
+            "suspected_faults": [],
+            "tool_results": [],
+            "tool_calls": [
+                {
+                    "tool_name": "safety_check",
+                    "input": {"text_only": True, "source_screened": bool(payload.source_title)},
+                    "output": pre_safety,
+                    "status": "ok",
+                    "duration_ms": 0,
+                }
+            ],
+            "can_click": False,
+            "safety": {
+                "risk_level": pre_safety["risk_level"],
+                "warnings": pre_safety["warnings"],
+            },
+            "confidence": "high",
+            "saved_artifact": None,
+        }
 
     session = _resolve_or_create_companion_session(payload.session_id, workspace)
     session_id = session["id"]
@@ -521,9 +555,10 @@ async def companion_run_tool(payload: CompanionRunToolRequest) -> dict:
 
     The overlay surfaces deterministic tools as buttons. Clicking one POSTs here.
     Result is returned inline and (if session_id provided) saved as a tool message.
+    Synchronous tool calls run on a worker thread so the FastAPI event loop
+    stays responsive when multiple companion users hit the hosted demo.
     """
-    import time as _time
-    started = _time.perf_counter()
+    started = perf_counter()
     tool = payload.tool
     args = payload.args or {}
 
@@ -531,13 +566,15 @@ async def companion_run_tool(payload: CompanionRunToolRequest) -> dict:
         topology = str(args.get("topology", "")).strip()
         if topology not in COMPANION_SUPPORTED_TOPOLOGIES:
             raise HTTPException(status_code=400, detail=f"unsupported topology: {topology}")
-        ranked = score_faults(topology, {"likely_fault_categories": []}, [])
+        ranked = await asyncio.to_thread(
+            score_faults, topology, {"likely_fault_categories": []}, []
+        )
         result = {"topology": topology, "ranked_faults": ranked[:5]}
     elif tool == "lookup_datasheet":
         part_number = str(args.get("part_number", "")).strip()
         if not part_number:
             raise HTTPException(status_code=400, detail="part_number is required")
-        raw = lookup_datasheet(part_number)
+        raw = await asyncio.to_thread(lookup_datasheet, part_number)
         result = datasheet_prompt_context(raw)
     elif tool == "retrieve_rag":
         query = str(args.get("query", "")).strip()
@@ -545,11 +582,11 @@ async def companion_run_tool(payload: CompanionRunToolRequest) -> dict:
             raise HTTPException(status_code=400, detail="query is required")
         topology = args.get("topology")
         topology_filter = topology if topology in COMPANION_SUPPORTED_TOPOLOGIES else None
-        result = retrieve_rag(query, topology=topology_filter, k=3)
+        result = await asyncio.to_thread(retrieve_rag, query, topology=topology_filter, k=3)
     else:  # pragma: no cover - guarded by Literal in schema
         raise HTTPException(status_code=400, detail=f"unknown tool: {tool}")
 
-    duration_ms = round((_time.perf_counter() - started) * 1000)
+    duration_ms = round((perf_counter() - started) * 1000)
 
     if payload.session_id:
         try:

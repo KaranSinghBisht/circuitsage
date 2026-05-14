@@ -7,6 +7,7 @@ This is what makes the LTspice/Tinkercad/MATLAB workflow useable instead of demo
 
 from __future__ import annotations
 
+import asyncio
 import time
 from typing import Any
 
@@ -197,7 +198,12 @@ async def _run_suggested_tools(
             if topology not in SUPPORTED_TOPOLOGIES:
                 continue
             started = time.perf_counter()
-            scored = score_faults(topology, {"likely_fault_categories": []}, detected_measurements)
+            # score_faults reads JSON files from disk + runs scoring loops; offload
+            # to a worker thread so the FastAPI event loop stays responsive when
+            # multiple companion users hit the hosted demo concurrently.
+            scored = await asyncio.to_thread(
+                score_faults, topology, {"likely_fault_categories": []}, detected_measurements
+            )
             output = {"topology": topology, "ranked_faults": scored[:5]}
             results.append({"tool": tool, "label": label, "args": {"topology": topology}, "result": output})
             _record_call(tool_calls, name="score_faults", started=started, output=output, inp={"topology": topology})
@@ -213,7 +219,7 @@ async def _run_suggested_tools(
             if not part_number:
                 continue
             started = time.perf_counter()
-            datasheet = lookup_datasheet(str(part_number))
+            datasheet = await asyncio.to_thread(lookup_datasheet, str(part_number))
             output = datasheet_prompt_context(datasheet)
             status = "missing" if datasheet.get("error") else "ok"
             results.append({"tool": tool, "label": label, "args": {"part_number": part_number}, "result": output})
@@ -234,7 +240,9 @@ async def _run_suggested_tools(
             if not query:
                 continue
             started = time.perf_counter()
-            snippets = retrieve(str(query), topology=topology, k=3)
+            # retrieve() hits the on-disk vectorstore (200-800 ms cold) — must
+            # not block the event loop on the hosted demo path.
+            snippets = await asyncio.to_thread(retrieve, str(query), topology=topology, k=3)
             results.append(
                 {"tool": tool, "label": label, "args": {"query": query, "topology": topology}, "result": snippets}
             )

@@ -4,28 +4,26 @@
 
 ## Problem
 
-Software students get stack traces. Electronics students get silence. When a circuit fails, the symptom is a flat oscilloscope trace, a saturated op-amp output, a hot part, or no signal at all. The student has to connect theory, simulation, breadboard wiring, datasheets, and instrument readings while one TA is helping ten other students. That moment is where many labs stop being educational and become trial-and-error.
+Software students get stack traces. Electronics students get silence. When a circuit fails the symptom is a flat scope, a saturated output, a hot part, or no signal — and the student has to connect theory, simulation, breadboard wiring, datasheets, and instrument readings while one TA helps ten other people. That moment is where labs stop being educational and become trial-and-error.
 
-The user we built CircuitSage for is concrete: a second- or third-year electrical engineering undergraduate at a university without paid Multisim or PSpice tutors, debugging a low-voltage exercise in LTspice, Tinkercad, or MATLAB on a shared lab laptop. They have intermittent internet, no cloud LLM access, no money for API tokens, and a 90-minute lab block. CircuitSage runs locally on their laptop and watches their workspace.
-
-CircuitSage is a local-first Gemma 4 lab partner for low-voltage educational circuits. It does not replace an instructor or automatically "solve" hardware. It makes the debugging process explicit: what evidence exists, what is expected, what was observed, which safety rules apply, and which single measurement should happen next.
+CircuitSage is built for a specific user: a second- or third-year EE undergrad at a university without paid Multisim or PSpice tutors, debugging a low-voltage exercise in LTspice, Tinkercad, or MATLAB on a shared lab laptop with intermittent internet, no cloud LLM, no API budget, and a 90-minute lab block. It runs locally and watches their workspace. It does not replace an instructor or automatically solve hardware — it makes the debugging process explicit: what evidence exists, what is expected, what was observed, which safety rules apply, and which single measurement should happen next.
 
 ## Solution
 
-The demo story is an inverting op-amp amplifier. The simulator expects a gain of about -4.7; the bench output is stuck near the positive rail. CircuitSage parses the netlist, computes expected gain, detects waveform saturation, checks safety, retrieves manual snippets, and asks for the missing measurement: the non-inverting input voltage. When the student enters `V_noninv = 2.8 V`, CircuitSage identifies the floating reference input and explains why the gain equation was not the immediate problem.
+Demo story: an inverting op-amp amplifier. Simulator expects gain ≈ −4.7; bench output is stuck near the positive rail. CircuitSage parses the netlist, computes expected gain, detects waveform saturation, checks safety, retrieves manual snippets, and asks for the missing measurement: the non-inverting input voltage. When the student enters `V_noninv = 2.8 V`, CircuitSage identifies the floating reference input and explains why the gain equation was not the immediate problem.
 
-Four surfaces: **Studio** holds artifacts, tool calls, diagnosis, and reports. **Bench Mode** is the phone-friendly measurement entry paired by QR code. **Companion** is the screen-aware hotkey helper for LTspice, Tinkercad, and MATLAB. **Educator** aggregates class-wide faults, refusals, and stalled measurements across 476 seeded sessions (top fault: floating non-inverting input, 170 occurrences).
+Four surfaces: **Studio** (artifacts, tool calls, diagnosis, reports), **Bench Mode** (phone-friendly entry via QR), **Companion** (screen-aware hotkey helper for LTspice/Tinkercad/MATLAB), **Educator** (class-wide aggregates over 476 seeded sessions; top fault: floating non-inverting input, 170×).
 
 ![Studio screenshot](../media/screenshots/02_studio.png)
 ![Educator dashboard](../media/screenshots/06_educator.png)
 
 ## Tracks
 
-For Future of Education, CircuitSage teaches the debugging loop instead of giving a final answer. It asks for the next measurement, shows evidence, and generates a lab report that explains the reasoning trail.
+**Future of Education** — teaches the debugging loop instead of giving a final answer: next measurement, evidence trail, post-lab report.
 
-For Digital Equity, the design assumes intermittent internet and crowded labs. The backend has deterministic fallbacks, and the mobile path is designed for on-device Gemma inference. The demo script includes an airplane-mode scene where the phone toggles airplane mode, asks a voice question, and receives a structured local diagnosis. The iOS on-device bundle remains a USER ACTION until the Gemma file is provisioned on a physical device, but the app path and blocker reporting are already wired.
+**Digital Equity** — assumes intermittent internet and crowded labs. Backend has deterministic fallbacks; mobile path runs Gemma on-device. Airplane-mode demo beat is wired (iOS Gemma bundle is a USER ACTION until provisioned on a physical device).
 
-For Safety & Trust, CircuitSage refuses live mains or high-voltage debugging, warns about stored charge, and keeps uncertainty visible. It has a dedicated `/uncertainty` gallery with eight cases where the correct behavior is to ask for more evidence instead of naming a component fault.
+**Safety & Trust** — refuses live mains and high-voltage, warns about stored charge, keeps uncertainty visible. The `/uncertainty` gallery shows eight cases where the correct answer is to ask for more evidence instead of naming a fault.
 
 ![Uncertainty gallery — when CircuitSage says no](../media/screenshots/07_uncertainty.png)
 

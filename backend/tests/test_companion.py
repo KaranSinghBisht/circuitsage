@@ -252,6 +252,71 @@ def test_companion_save_snapshot_false_does_not_persist_artifact(monkeypatch):
         )
 
 
+def test_safety_check_word_boundaries_no_false_positives():
+    """Regression for HIGH bug: 'screenshot' / 'hotkey' / 'photo' used to match
+    the substring 'hot' and trigger a stuck caution warning on every ordinary
+    Companion call that mentioned them."""
+    from app.tools.safety_check import safety_check
+
+    for harmless in [
+        "I took a screenshot of LTspice",
+        "the hotkey isn't working",
+        "this photodiode reading looks wrong",
+        "what is the unit hour rating?",
+        "increase the throughput of the loop",
+        "this is a capacitorless design (sallen-key with R only)",
+    ]:
+        result = safety_check(harmless)
+        assert result["allowed"] is True, f"false-positive refusal on: {harmless!r}"
+        warnings = result["warnings"]
+        # No 'hot components' warning unless the text actually contains 'hot' (etc.) as a word.
+        hot_warning = any("hot" in w.lower() for w in warnings)
+        if hot_warning:
+            assert "hot" in harmless.lower().split() or "smoke" in harmless.lower(), (
+                f"phantom 'hot' caution on: {harmless!r}"
+            )
+
+
+def test_safety_check_high_voltage_phrasings():
+    """Regression for HIGH bug: prior pattern list missed common phrasings.
+    A real student saying 'high voltage' or '230Vrms' was getting a green light."""
+    from app.tools.safety_check import safety_check
+
+    for dangerous in [
+        "I'm probing high voltage",
+        "230Vrms across the secondary",
+        "trace the HV side of the SMPS",
+        "line voltage at the wall socket",
+        "primary winding of the step-down transformer",
+        "neon sign transformer is buzzing",
+        "the AC mains ground feels hot",
+    ]:
+        result = safety_check(dangerous)
+        assert result["allowed"] is False, f"missed high-voltage refusal on: {dangerous!r}"
+        assert result["risk_level"] == "high_voltage_or_mains"
+
+
+def test_companion_safety_screens_source_title_too(monkeypatch):
+    """Regression for HIGH bug: a screenshot of '240V Mains Diagnostic.asc' with
+    question='' used to bypass the safety check entirely because only `payload.question`
+    was screened. Now the source title is folded into the safety text."""
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/companion/analyze",
+            json={
+                "question": "",
+                "app_hint": "ltspice",
+                "source_title": "240V Mains Diagnostic.asc - LTspice XVII",
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["mode"] == "safety_refusal", (
+            "source title with mains voltage must trigger refusal even when question is empty"
+        )
+
+
 def test_companion_safety_refusal_does_not_persist_dangerous_question(monkeypatch):
     """Regression for HIGH bug: a high-voltage question used to auto-create a
     companion session and persist the dangerous question into the messages
