@@ -760,8 +760,11 @@ def get_datasheet(partnumber: str) -> dict:
     return lookup_datasheet(partnumber)
 
 
-@app.get("/api/educator/overview")
-def educator_overview() -> dict:
+def _build_educator_overview() -> dict:
+    """Synchronous educator aggregator. Hot path that scans every session and
+    diagnosis row — kept as a plain function so the async wrapper can offload
+    it to a worker thread instead of stalling the FastAPI event loop on the
+    hosted demo with even a few thousand rows."""
     with db() as conn:
         sessions = rows_to_dicts(conn.execute("SELECT * FROM lab_sessions").fetchall())
         diagnoses = rows_to_dicts(conn.execute("SELECT * FROM diagnoses").fetchall())
@@ -802,6 +805,11 @@ def educator_overview() -> dict:
             for label, count in stalled.most_common(12)
         ],
     }
+
+
+@app.get("/api/educator/overview")
+async def educator_overview() -> dict:
+    return await asyncio.to_thread(_build_educator_overview)
 
 
 @app.post("/api/sessions/seed/fault/{topology}/{fault_id}")

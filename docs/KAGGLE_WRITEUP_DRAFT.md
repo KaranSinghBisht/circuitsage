@@ -37,15 +37,13 @@ The frontend is a Vite/React app with routes for Studio, Bench, Companion, Educa
 
 ## Companion: Click-to-Act on a Live LTspice Window
 
-The Companion is the surface where the local model and the deterministic SPICE catalog meet. The student presses `Cmd+Shift+Space` inside LTspice, types "why is the output saturating", and waits a few seconds. One Gemma vision call sees the schematic in the active window and returns a structured JSON object with the detected topology, visible component refs, suspected faults, and a list of suggested deterministic tools to run next. The orchestrator runs those tools immediately — `score_faults` against the topology-specific catalog, `lookup_datasheet` for any visible op-amp or BJT model string, `retrieve_rag` for matching textbook excerpts — and renders each result inline as a click-to-act button.
+`Cmd+Shift+Space` inside LTspice → one Gemma vision call sees the schematic and returns structured JSON: detected topology, visible components, suspected faults, suggested deterministic tools to run. The orchestrator runs those tools immediately — `score_faults` against the topology catalog, `lookup_datasheet` for any visible op-amp/BJT, `retrieve_rag` for textbook excerpts — and renders each result inline as a click-to-act button. Click "Look up TL081 datasheet" → pin map + common faults inline. Click "Capture again after grounding V+" → re-runs the loop after the fix. Each turn appends to a persistent companion session so the second ask carries the first screenshot and answer into the prompt.
 
-The student can then click "Look up TL081 datasheet" and see the pin map plus common faults inline, or click "Capture again after grounding V+" to re-run the loop after the fix. Each turn is appended to a persistent companion session, so the second ask carries the first screenshot and answer into the prompt — the model gets a memory across hotkey presses.
+`Cmd+Shift+X` drops a crosshair: paint just the region you care about (one bulb, one waveform trace, one error message). Only the crop goes to the vision encoder — dramatically better recognition than a full-screen capture, which Gemma 3 4B's vision encoder degrades on at the tight pixel density of a real schematic.
 
-A second hotkey, `Cmd+Shift+X`, drops a crosshair so the student can paint just the region they want analyzed — one bulb, one waveform trace, one error message. Only the crop goes to the vision encoder, which dramatically improves recognition over a full-screen capture (Gemma 3 4B's vision encoder degrades on tightly-packed schematics at full resolution but reads cleanly on a focused crop).
+A desktop "pet" — stylized DIP chip with two LED eyes — sits in the corner and mirrors the Companion's state visually: blue eyes while a vision call is in flight, green bounce on a high-confidence diagnosis, yellow squint on low, red on a safety refusal. Click to open the companion, double-click to start a highlight. It's the only signal the student needs when CircuitSage is otherwise out of sight in the menu bar.
 
-A small desktop "pet" sits in the corner of the screen — a stylized DIP chip with two LED eyes — and mirrors the Companion's state visually: blue eyes while the vision call is in flight, green bounce on a high-confidence diagnosis, yellow squint on low confidence, red on a safety refusal. Click the chip to open the companion; double-click to start a highlight. It is the only signal the student needs when CircuitSage is otherwise out of sight in the menu bar.
-
-This is the workflow electronics students actually have. They are not in a chat tab — they are in their simulator. CircuitSage joins them there. No competing entry in this hackathon integrates with a desktop EDA tool that we found.
+Students aren't in a chat tab — they're in their simulator. CircuitSage joins them there. No competing entry we found integrates with a desktop EDA tool.
 
 ## Multimodal Workflow
 
@@ -55,15 +53,13 @@ Datasheet support is deliberately practical. If a parsed netlist contains model 
 
 ## Why Gemma 4 Specifically
 
-CircuitSage is not a wrapper around any large language model. It depends on what the Gemma family makes possible:
+- **Native multimodal vision on a 4B model.** The Companion needs a model small enough for a student laptop yet vision-capable enough to read an LTspice canvas, breadboard photo, or scope screenshot. `gemma3:4b` today (~3.3 GB disk, ~5 GB RAM); `gemma4:e4b` is the upgrade path — one `OLLAMA_VISION_MODEL` env var swap. Both Apache-2.0, both run on the same backend code.
+- **Function calling + structured JSON.** Companion returns a typed JSON object (`detected_topology`, `detected_components`, `detected_measurements`, `suspected_faults`, `suggested_actions`) in one vision call; the orchestrator chains `score_faults`, `lookup_datasheet`, `retrieve_rag` deterministically. Studio uses Ollama's native `tools=` when the model accepts it (Gemma 4 E4B); when it doesn't (Gemma 3 4B), prompt-driven structured output produces an identical API contract.
+- **128K context.** A short datasheet + full session transcript in one call.
+- **Apache 2.0.** No tokens, no telemetry, no rate limits — critical for the named user.
+- **Local inference via Ollama.** Single binary, runs on a 2024 MacBook or classroom Raspberry Pi 5. For laptops below 16 GB the same backend points at a **Modal-hosted Ollama** via one `OLLAMA_BASE_URL` swap ([docs/HOSTED_OLLAMA_MODAL.md](../docs/HOSTED_OLLAMA_MODAL.md)) — local-first architecture, GPU rented by the hour only when needed.
 
-- **Native multimodal vision on a 4 B model.** The Companion's screen-aware loop needs a model small enough to run on a student's laptop yet vision-capable enough to read an LTspice canvas, a breadboard photo, or a scope screenshot. We use `gemma3:4b` today (vision-capable, ~3.3 GB on disk, ~5 GB at runtime) and target `gemma4:e4b` as the upgrade path the moment its Ollama tag stabilizes; the swap is one `OLLAMA_VISION_MODEL` env var. Both are Apache-2.0 and run on the same backend code unchanged.
-- **Function calling and structured JSON.** The Companion orchestrator returns a typed JSON object (`detected_topology`, `detected_components`, `detected_measurements`, `suspected_faults`, `suggested_actions`) in one vision call, then deterministically chains `score_faults`, `lookup_datasheet`, and `retrieve_rag` against the SPICE catalog and the textbook RAG. Each tool result lands as a click-to-act button in the overlay. The Studio's deeper diagnose path uses Ollama's native `tools=` parameter when the model accepts it (Gemma 4 E4B); when it doesn't (Gemma 3 4B currently rejects `tools=` on Ollama), the same loop runs as prompt-driven structured output and the result is identical at the API boundary.
-- **128K context.** Lets us include an entire short datasheet plus the full session transcript in one call.
-- **Apache 2.0 licensing.** Critical for the named user — students at universities without API budgets. No tokens, no telemetry, no rate limits.
-- **Local inference with Ollama.** A single binary, no Python environment fights, runs on a 2024-era MacBook or a classroom Raspberry Pi 5 microserver. For laptops below the 16 GB target (8 GB Macs, older Chromebooks), the same backend code points at a **Modal-hosted Ollama** via one `OLLAMA_BASE_URL` swap (see `docs/HOSTED_OLLAMA_MODAL.md`) — the architecture stays local-first, the GPU just rents by the hour when the student needs it.
-
-Removing Gemma from this stack removes the product. Cloud APIs would defeat the offline narrative and the student-without-budget user. Smaller models cannot read the schematic. Larger models cannot run on the student's laptop. The Gemma 3 4B → Gemma 4 E4B path is the size-and-license sweet spot, and the LoRA we ship sits on top of it.
+Cloud APIs defeat the offline narrative. Smaller models can't read the schematic. Larger models can't run on the laptop. The Gemma family is the only size-and-license sweet spot for this user.
 
 ## Fine-Tune And Evaluation
 
