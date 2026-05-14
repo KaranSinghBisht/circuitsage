@@ -146,12 +146,30 @@ else
   log_warn "${UNCOMMITTED} uncommitted changes — commit before pushing"
 fi
 
-if [ -f scripts/check_kaggle_public.sh ]; then
-  bash scripts/check_kaggle_public.sh > /tmp/circuitsage_kaggle.log 2>&1 \
-    && log_pass "Kaggle URLs reachable" \
-    || log_warn "Kaggle URLs unreachable (set dataset+kernels public via web UI)"
+echo "  ↳ probing Kaggle URLs..."
+KAGGLE_URLS=(
+  "https://www.kaggle.com/datasets/karansinghbisht/circuitsage-faults-v1|dataset"
+  "https://www.kaggle.com/code/karansinghbisht/circuitsage-eval|eval kernel"
+  "https://www.kaggle.com/code/karansinghbisht/circuitsage-gemma-lora|training kernel"
+  "https://www.kaggle.com/code/karansinghbisht/circuitsage-writeup|writeup"
+)
+for entry in "${KAGGLE_URLS[@]}"; do
+  url="${entry%%|*}"
+  label="${entry##*|}"
+  rc=$(curl -s -o /dev/null -w "%{http_code}" "$url")
+  if [ "$rc" = "200" ]; then
+    log_pass "Kaggle ${label} live (200)"
+  else
+    log_fail "Kaggle ${label} returns ${rc} — toggle to PUBLIC in Kaggle web UI: ${url}/settings"
+  fi
+done
+
+echo "  ↳ probing GitHub URL..."
+GH_RC=$(curl -s -o /dev/null -w "%{http_code}" https://github.com/KaranSinghBisht/circuitsage)
+if [ "$GH_RC" = "200" ]; then
+  log_pass "GitHub repo public (200)"
 else
-  log_warn "Kaggle URL check (USER ACTION): toggle dataset and 2 kernels to PUBLIC in Kaggle web UI"
+  log_fail "GitHub repo returns ${GH_RC} — toggle to PUBLIC at https://github.com/KaranSinghBisht/circuitsage/settings"
 fi
 
 # ── Report ─────────────────────────────────────────────────────────────────────

@@ -17,7 +17,7 @@ Source: `docs/WINNING_FORWARD_PLAN.md` Section 9.
 | [x] | Faults gallery shows >= 30 cards; uncertainty gallery shows >= 6 cases. |
 | [ ] | Hindi, Spanish, Portuguese locales render without layout breakage. |
 | [ ] | Accessibility audit passes (manual screen-reader walkthrough; high-contrast mode toggle works). |
-| [ ] | CI green on the submission commit. |
+| [x] | CI green on the submission commit. (112/112 backend tests, frontend build, desktop check, iOS typecheck — verified 2026-05-14 via `scripts/submission_prep.sh`.) |
 | [ ] | Video script printed; bench BOM ready. |
 | [x] | Writeup <= 1500 words; cover image rendered. |
 | [ ] | HF dataset card + model card uploaded (K9). |

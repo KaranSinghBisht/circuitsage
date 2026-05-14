@@ -123,4 +123,4 @@ Kaggle eval kernel (Gemma 3 4B via Ollama on T4): https://www.kaggle.com/code/ka
 
 Kaggle training kernel (Unsloth LoRA on Gemma 3 1B): https://www.kaggle.com/code/karansinghbisht/circuitsage-gemma-lora
 
-Hugging Face dataset card and model card: see `train/dataset/card.md` and `train/output/MODEL_CARD.md` (uploaded to Hugging Face on submission day).
+Hugging Face dataset card and model card: ship in-repo at `train/dataset/card.md` and `train/output/MODEL_CARD.md`. Hub upload via `scripts/hf_upload_dataset.py` once the LoRA GGUF lands from the Kaggle Unsloth run.
