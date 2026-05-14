@@ -424,6 +424,36 @@ def _vision_failed_response(
     }
 
 
+_MEANINGFUL_KEYS = (
+    "user_facing_answer",
+    "answer",
+    "visible_context",
+    "detected_topology",
+    "detected_components",
+    "detected_measurements",
+    "suspected_faults",
+    "suggested_actions",
+)
+
+
+def _is_degenerate_parse(parsed: dict[str, Any]) -> bool:
+    """Treat a parsed dict as degenerate when the model produced JSON that
+    technically validates but contains nothing useful — e.g. literal `{}` or
+    a dict with only `{"workspace": "ltspice"}` (just echoed the input).
+    The user should see a helpful message, not the literal raw braces."""
+    if not parsed:
+        return True
+    for key in _MEANINGFUL_KEYS:
+        value = parsed.get(key)
+        if isinstance(value, str) and value.strip():
+            return False
+        if isinstance(value, list) and value:
+            return False
+        if key == "detected_topology" and isinstance(value, str) and value not in ("", "unknown"):
+            return False
+    return True
+
+
 def _unparsed_vision_response(
     workspace: str,
     safety: dict[str, Any],
@@ -433,13 +463,35 @@ def _unparsed_vision_response(
     saved_artifact: dict[str, Any] | None,
 ) -> dict[str, Any]:
     excerpt = (raw or "").strip()[:600]
+    # Detect the degenerate-JSON case (model returned `{}` or near-empty)
+    # and show a useful message instead of the literal braces — the user
+    # would otherwise read raw `"{}"` as a backend bug.
+    is_braces_only = excerpt in {"{}", "{ }", "{}\n", ""} or (
+        excerpt.startswith("{") and excerpt.endswith("}") and len(excerpt) <= 6
+    )
+    if is_braces_only:
+        user_facing = (
+            "Gemma returned an empty response — the screenshot likely doesn't show "
+            "enough detail for vision recognition. Try a tighter highlight crop "
+            "(Cmd+Shift+X) around just the part of the circuit you're asking about, "
+            "or ask a more specific question."
+        )
+        next_actions = [
+            "Use Cmd+Shift+X to crop tightly around the suspect component or trace.",
+            "Add a specific question like 'why is V_out saturating?' instead of leaving it open-ended.",
+        ]
+    else:
+        user_facing = excerpt or "Vision returned no useful output. Try again."
+        next_actions = [
+            "Re-ask with a tighter question; the model returned prose instead of JSON.",
+        ]
     return {
         "mode": "gemma_text_unparsed",
         "workspace": workspace,
-        "visible_context": excerpt,
-        "user_facing_answer": excerpt,
-        "answer": excerpt,
-        "next_actions": ["Re-ask with a tighter question; the model returned prose instead of JSON."],
+        "visible_context": user_facing if is_braces_only else excerpt,
+        "user_facing_answer": user_facing,
+        "answer": user_facing,
+        "next_actions": next_actions,
         "actions": [],
         "suggested_actions": [],
         "detected_topology": "unknown",
@@ -516,7 +568,7 @@ async def analyze(
     )
 
     parsed = parse_json_response(chat.get("content", ""))
-    if not parsed:
+    if _is_degenerate_parse(parsed or {}):
         return _unparsed_vision_response(
             workspace, safety, tool_calls, chat.get("content", ""), started_total, saved_artifact
         )

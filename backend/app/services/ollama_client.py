@@ -74,8 +74,11 @@ class OllamaClient:
         raise last_error or RuntimeError("Ollama chat failed")
 
     async def health(self) -> dict[str, Any]:
+        # Bumped from 3s → 10s so a Modal-hosted Ollama mid-cold-start (5-60s
+        # to spin up the container) doesn't show the user "model unavailable"
+        # right after backend boot.
         try:
-            async with httpx.AsyncClient(timeout=3.0) as client:
+            async with httpx.AsyncClient(timeout=10.0) as client:
                 response = await client.get(f"{self.base_url}/api/tags")
                 response.raise_for_status()
                 models = response.json().get("models", [])

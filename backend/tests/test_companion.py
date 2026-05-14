@@ -396,6 +396,66 @@ def test_companion_prior_turns_excludes_current_question(monkeypatch):
     )
 
 
+def test_companion_degenerate_empty_json_yields_helpful_message(monkeypatch):
+    """Regression for the 'backend keeps messing up' symptom: when Gemma's
+    vision call returned the literal `{}`, the user used to see `"{}"` as
+    the answer text. Now the orchestrator detects degenerate parses and
+    surfaces a useful 'try a tighter highlight' message."""
+
+    async def fake_chat(self, messages, format_json=False, tools=None):
+        # Reproduce the exact bad output we saw from gemma3:4b on Modal.
+        return {
+            "content": "{}",
+            "tool_calls": [],
+            "raw_status": 200,
+            "fallback": False,
+        }
+
+    monkeypatch.setattr(
+        "app.services.companion_orchestrator.OllamaClient.chat", fake_chat
+    )
+    image = "data:image/jpeg;base64," + base64.b64encode(b"fake").decode("ascii")
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/companion/analyze",
+            json={"question": "what is wrong here?", "app_hint": "ltspice", "image_data_url": image},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        # Mode is still gemma_text_unparsed (so we're honest), but the user-facing
+        # answer is no longer the literal "{}".
+        assert data["mode"] == "gemma_text_unparsed"
+        assert data["answer"] != "{}", (
+            f"degenerate empty JSON must not surface literal '{{}}' to the user; "
+            f"got answer={data.get('answer')!r}"
+        )
+        assert "Cmd+Shift+X" in data["answer"] or "tighter" in data["answer"].lower(), (
+            "degenerate empty JSON should hint at the highlight crop fix"
+        )
+
+
+def test_companion_seed_accepts_underscored_topology():
+    """Regression: SEED_TO_TOPOLOGY mapped only hyphenated public slugs; hitting
+    /api/sessions/seed/op_amp_inverting (the literal experiment_type returned
+    by /api/sessions) used to 404. Now CATALOG underscored names work too."""
+    with TestClient(app) as client:
+        response = client.post("/api/sessions/seed/op_amp_inverting")
+        assert response.status_code == 200, (
+            f"underscored topology slug must seed; got {response.status_code} {response.text[:120]}"
+        )
+
+
+def test_default_ollama_model_falls_back_to_gemma3_4b(monkeypatch):
+    """Regression: prior fallback was 'gemma4:e4b' which has no public Ollama
+    tag — Studio chat/diagnose would 404 silently. Now defaults to gemma3:4b."""
+    monkeypatch.delenv("OLLAMA_MODEL", raising=False)
+    # Force the host-check to return False so we skip the circuitsage:latest path.
+    monkeypatch.setattr("app.config._ollama_has_model", lambda _b, _m: False)
+    from app.config import _default_ollama_model
+    assert _default_ollama_model() == "gemma3:4b"
+
+
 def test_companion_run_tool_score_faults_returns_ranked_catalog():
     with TestClient(app) as client:
         response = client.post(

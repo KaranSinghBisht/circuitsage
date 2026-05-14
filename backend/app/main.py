@@ -974,7 +974,15 @@ SEED_TO_TOPOLOGY = {
 
 @app.post("/api/sessions/seed/{slug}")
 async def seed_topology_demo(slug: str) -> dict:
+    # Try the slug map first (hyphenated public slugs), then fall back to the
+    # underscored topology name itself if it exists in CATALOG. Lets clients
+    # hit `/api/sessions/seed/op_amp_inverting` (the literal experiment_type
+    # returned by /api/sessions) without a 404.
     topology = SEED_TO_TOPOLOGY.get(slug)
+    if not topology:
+        normalized = slug.replace("-", "_")
+        if normalized in CATALOG:
+            topology = normalized
     if not topology:
         raise HTTPException(status_code=404, detail="Seed not found")
     catalog = CATALOG.get(topology, {"label": topology.replace("_", " "), "faults": []})

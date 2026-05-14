@@ -29,7 +29,11 @@ def _default_ollama_model() -> str:
     base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
     if _ollama_has_model(base_url, "circuitsage:latest"):
         return "circuitsage:latest"
-    return "gemma4:e4b"
+    # gemma3:4b is what we actually pull / host on Modal; the prior default
+    # gemma4:e4b doesn't have a public Ollama tag yet so falling back to it
+    # silently 404s every Studio chat / diagnose call ("backend keeps messing
+    # up"). Keep the env var override path so users can opt into e4b later.
+    return "gemma3:4b"
 
 
 class Settings:
