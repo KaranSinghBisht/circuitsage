@@ -7,6 +7,9 @@ const state = {
   listening: false,
   analyzing: false,
   lastAutoAnalyzeAt: 0,
+  lastActions: [],
+  lastSessionId: null,
+  usingPreCaptured: false,
 };
 
 const $ = (id) => document.getElementById(id);
@@ -26,14 +29,81 @@ function setStatus(text, live = false) {
 }
 
 function renderResult(result) {
+  const typedActions = Array.isArray(result.actions) ? result.actions : [];
+  const topology = result.detected_topology && result.detected_topology !== "unknown"
+    ? ` · ${escapeHtml(result.detected_topology)}`
+    : "";
+  const durationLabel = result.duration_ms ? ` · ${result.duration_ms} ms` : "";
+  const suspectedHtml = Array.isArray(result.suspected_faults) && result.suspected_faults.length > 0
+    ? `<ul class="suspected">${result.suspected_faults.map((fault) => `<li>${escapeHtml(fault)}</li>`).join("")}</ul>`
+    : "";
+  const buttonsHtml = typedActions.length > 0
+    ? `<div class="action-row">${typedActions
+        .map((action, idx) => {
+          const label = escapeHtml(action.label || "Action");
+          const dataset = `data-idx="${idx}"`;
+          return `<button class="action-chip" ${dataset}>${label}</button>`;
+        })
+        .join("")}</div><div id="actionResults"></div>`
+    : `<ol>${(result.next_actions || []).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ol>`;
+
   $("result").innerHTML = `
-    <div class="result-meta">${escapeHtml(result.mode || "analysis")} · ${escapeHtml(result.confidence || "unknown")} confidence</div>
-    <h2>${escapeHtml(result.workspace || "workspace")}</h2>
+    <div class="result-meta">${escapeHtml(result.mode || "analysis")} · ${escapeHtml(result.confidence || "unknown")} confidence${durationLabel}</div>
+    <h2>${escapeHtml(result.workspace || "workspace")}${topology}</h2>
     <p>${escapeHtml(result.visible_context || "")}</p>
     <strong>${escapeHtml(result.answer || "")}</strong>
-    <ol>${(result.next_actions || []).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ol>
+    ${suspectedHtml}
+    ${buttonsHtml}
     ${result.gemma_error ? `<small class="error">${escapeHtml(result.gemma_error)}</small>` : ""}
   `;
+
+  if (typedActions.length > 0) {
+    state.lastActions = typedActions;
+    state.lastSessionId = result.session_id || null;
+    document.querySelectorAll("#result .action-chip").forEach((button) => {
+      button.addEventListener("click", () => runAction(Number(button.dataset.idx)));
+    });
+  }
+}
+
+async function runAction(index) {
+  const action = (state.lastActions || [])[index];
+  if (!action) return;
+  if (action.action === "capture") {
+    quickAnalyze().catch(console.error);
+    return;
+  }
+  if (action.action === "measurement") {
+    appendActionResult(action.label, { hint: "Open Bench Mode to log this measurement, then re-ask.", args: action.args });
+    return;
+  }
+  const tool = action.args && action.args.tool;
+  if (!tool || !["score_faults", "lookup_datasheet", "retrieve_rag"].includes(tool)) {
+    appendActionResult(action.label, { error: "Unknown tool" });
+    return;
+  }
+  const args = { ...(action.args || {}) };
+  delete args.tool;
+  delete args.already_ran;
+  try {
+    const response = await window.circuitSage.runTool({
+      tool,
+      args,
+      session_id: state.lastSessionId,
+    });
+    appendActionResult(action.label, response.result);
+  } catch (error) {
+    appendActionResult(action.label, { error: error.message || String(error) });
+  }
+}
+
+function appendActionResult(label, value) {
+  const container = $("actionResults");
+  if (!container) return;
+  const block = document.createElement("pre");
+  block.className = "action-result";
+  block.innerHTML = `<strong>${escapeHtml(label)}</strong>\n${escapeHtml(JSON.stringify(value, null, 2).slice(0, 1200))}`;
+  container.appendChild(block);
 }
 
 function setGlow(enabled) {
@@ -140,7 +210,9 @@ async function analyze(options = {}) {
   let originalQuestion = "";
   setStatus("thinking", true);
   try {
-    if ($("followActive").checked || options.followActive) {
+    if (state.usingPreCaptured) {
+      // lastImage is already the highlighted crop; do not recapture or it'll clobber.
+    } else if ($("followActive").checked || options.followActive) {
       await selectActiveSource({ quiet: true });
     } else {
       await refreshSelectedThumbnail();
@@ -165,13 +237,16 @@ async function analyze(options = {}) {
     setStatus("error");
   } finally {
     if (options.passive) $("question").value = originalQuestion;
+    state.usingPreCaptured = false;
     state.analyzing = false;
   }
 }
 
 async function quickAnalyze() {
   $("question").value = $("quickQuestion").value;
-  await selectActiveSource();
+  if (!state.usingPreCaptured) {
+    await selectActiveSource();
+  }
   await analyze();
   hideCommandOverlay();
 }
@@ -268,7 +343,41 @@ window.addEventListener("keydown", (event) => {
   }
 });
 
-window.circuitSage.onInvoke(() => {
+window.circuitSage.onInvoke((payload) => {
+  if (payload && payload.image_data_url) {
+    // Highlight flow: main process already captured + cropped. Skip recapture.
+    state.usingPreCaptured = true;
+    state.lastImage = payload.image_data_url;
+    state.selected = {
+      id: "highlight-crop",
+      name: "Highlight selection",
+      thumbnail: payload.image_data_url,
+      activeAppName: "",
+      activeWindowName: "",
+    };
+    const previewEl = $("preview");
+    if (previewEl) previewEl.src = payload.image_data_url;
+    setWatchContext("Highlight");
+    setStatus("highlight ready", true);
+    showCommandOverlay();
+    // Pre-fill a default question and auto-fire after a 700 ms grace period.
+    // If the user starts typing inside the grace window we skip auto-fire and
+    // let them submit manually. Turns the highlight gesture into a single
+    // "drag → answer" beat for the demo.
+    const quick = $("quickQuestion");
+    if (quick && !quick.value.trim()) {
+      quick.value = "What is wrong with this part of the circuit?";
+    }
+    const initialQuestion = quick ? quick.value : "";
+    window.setTimeout(() => {
+      const stillUnchanged = quick && quick.value === initialQuestion;
+      if (stillUnchanged && state.usingPreCaptured && !state.analyzing) {
+        quickAnalyze().catch(console.error);
+      }
+    }, 700);
+    return;
+  }
+  state.usingPreCaptured = false;
   showCommandOverlay();
   selectActiveSource().catch(() => undefined);
 });

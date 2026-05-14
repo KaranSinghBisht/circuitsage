@@ -8,7 +8,7 @@
   "scripts": {
     "start": "electron .",
     "dev": "electron .",
-    "check": "node --check main.js && node --check preload.js && node --check automation.js && node --check renderer/renderer.js"
+    "check": "node --check main.js && node --check preload.js && node --check automation.js && node --check renderer/renderer.js && node --check highlight-overlay.js && node --check highlight-overlay-preload.js && node --check pet-window.js && node --check pet-window-preload.js"
   },
   "dependencies": {
     "electron": "^41.5.0"
@@ -26,6 +26,6 @@
       "entitlements": "entitlements.mac.plist",
       "entitlementsInherit": "entitlements.mac.plist"
     },
-    "files": ["main.js", "preload.js", "automation.js", "renderer/**/*"]
+    "files": ["main.js", "preload.js", "automation.js", "highlight-overlay.html", "highlight-overlay.js", "highlight-overlay-preload.js", "pet-window.html", "pet-window.js", "pet-window-preload.js", "renderer/**/*"]
   }
 }

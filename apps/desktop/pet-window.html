@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CircuitSage Pet</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+        background: transparent;
+        -webkit-app-region: drag;
+      }
+      * {
+        box-sizing: border-box;
+        user-select: none;
+        -webkit-user-drag: none;
+      }
+
+      .stage {
+        position: relative;
+        width: 140px;
+        height: 140px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .aura {
+        position: absolute;
+        inset: 18px;
+        border-radius: 18px;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.35s ease, background 0.35s ease;
+        filter: blur(8px);
+      }
+
+      .chip {
+        position: relative;
+        width: 90px;
+        height: 64px;
+        background: linear-gradient(180deg, #1c1c22 0%, #0a0a0d 100%);
+        border-radius: 9px;
+        box-shadow:
+          0 6px 18px rgba(0, 0, 0, 0.5),
+          inset 0 1px 0 rgba(255, 255, 255, 0.06),
+          inset 0 -1px 0 rgba(0, 0, 0, 0.6);
+        animation: breathe 3.4s ease-in-out infinite;
+        transition: filter 0.3s ease, transform 0.3s ease;
+      }
+
+      @keyframes breathe {
+        0%, 100% {
+          transform: scale(1) translateY(0);
+        }
+        50% {
+          transform: scale(1.025) translateY(-1px);
+        }
+      }
+
+      .notch {
+        position: absolute;
+        top: -1px;
+        left: 50%;
+        width: 14px;
+        height: 8px;
+        background: #050507;
+        border-radius: 0 0 8px 8px;
+        transform: translateX(-50%);
+        box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+      }
+
+      .legs {
+        position: absolute;
+        top: 7px;
+        height: 50px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+      .legs.left {
+        left: -5px;
+      }
+      .legs.right {
+        right: -5px;
+      }
+      .leg {
+        width: 5px;
+        height: 5px;
+        background: linear-gradient(180deg, #8a8a90 0%, #4a4a50 100%);
+        border-radius: 1px;
+      }
+
+      .eyes {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        padding-top: 2px;
+      }
+      .eye {
+        position: relative;
+        width: 13px;
+        height: 13px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 35% 32%, #aaffd0 0%, #5cfba6 38%, #2c9b62 78%, #135534 100%);
+        box-shadow:
+          0 0 10px rgba(92, 251, 166, 0.55),
+          inset 0 -2px 3px rgba(0, 0, 0, 0.25);
+        transition: background 0.35s ease, box-shadow 0.35s ease, transform 0.25s ease;
+      }
+      .eye::after {
+        content: "";
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 4px;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.75);
+        border-radius: 50%;
+        filter: blur(0.3px);
+      }
+
+      .click-zone {
+        position: absolute;
+        inset: 0;
+        -webkit-app-region: no-drag;
+        cursor: pointer;
+      }
+
+      .bubble {
+        position: absolute;
+        left: 50%;
+        bottom: 6px;
+        transform: translate(-50%, 100%) scale(0.95);
+        background: rgba(12, 16, 14, 0.96);
+        color: #d4ffe5;
+        border: 1px solid rgba(92, 251, 166, 0.55);
+        padding: 6px 10px;
+        border-radius: 10px;
+        font-family: -apple-system, system-ui, "Helvetica Neue", sans-serif;
+        font-size: 11px;
+        max-width: 200px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.25s ease, transform 0.25s ease;
+        z-index: 5;
+      }
+      .stage.has-bubble .bubble {
+        opacity: 1;
+        transform: translate(-50%, 100%) scale(1);
+      }
+
+      /* ─── State: watching ─── */
+      .stage.watching .eye {
+        animation: dart 4.2s ease-in-out infinite;
+      }
+      @keyframes dart {
+        0%, 100% { transform: translateX(0); }
+        20% { transform: translateX(-2.5px); }
+        45% { transform: translateX(2.5px); }
+        70% { transform: translateX(-1px); }
+      }
+
+      /* ─── State: thinking ─── */
+      .stage.thinking .aura {
+        opacity: 0.9;
+        background: radial-gradient(circle, rgba(92, 180, 251, 0.65) 0%, transparent 70%);
+        animation: pulse 0.95s ease-in-out infinite;
+      }
+      @keyframes pulse {
+        0%, 100% { transform: scale(0.92); opacity: 0.55; }
+        50% { transform: scale(1.06); opacity: 1; }
+      }
+      .stage.thinking .eye {
+        background: radial-gradient(circle at 35% 32%, #cfe9ff 0%, #8fcfff 38%, #4a90d9 78%, #1a5390 100%);
+        box-shadow: 0 0 12px rgba(92, 180, 251, 0.65);
+      }
+
+      /* ─── State: found ─── */
+      .stage.found .chip {
+        animation: bounce 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 1, breathe 3.4s ease-in-out 0.7s infinite;
+      }
+      @keyframes bounce {
+        0% { transform: scale(1) translateY(0); }
+        30% { transform: scale(1.18, 0.82) translateY(0); }
+        55% { transform: scale(0.88, 1.18) translateY(-10px); }
+        80% { transform: scale(1.04, 0.96) translateY(0); }
+        100% { transform: scale(1) translateY(0); }
+      }
+      .stage.found .aura {
+        opacity: 1;
+        background: radial-gradient(circle, rgba(92, 251, 166, 0.6) 0%, transparent 72%);
+      }
+
+      /* ─── State: cautious ─── */
+      .stage.cautious .eye {
+        background: radial-gradient(circle at 35% 32%, #fef0c0 0%, #fbd95c 40%, #c9963c 78%, #6b4f1c 100%);
+        box-shadow: 0 0 10px rgba(251, 217, 92, 0.5);
+        transform: scaleY(0.55);
+      }
+      .stage.cautious .aura {
+        opacity: 0.7;
+        background: radial-gradient(circle, rgba(251, 217, 92, 0.35) 0%, transparent 70%);
+      }
+
+      /* ─── State: refused ─── */
+      .stage.refused .eye {
+        background: radial-gradient(circle at 35% 32%, #fbc5bd 0%, #fb6e5c 40%, #c93f36 78%, #6b1a14 100%);
+        box-shadow: 0 0 12px rgba(251, 110, 92, 0.6);
+        transform: scaleY(0.18);
+      }
+      .stage.refused .aura {
+        opacity: 0.85;
+        background: radial-gradient(circle, rgba(251, 110, 92, 0.45) 0%, transparent 70%);
+      }
+
+      /* Wake animation on hover */
+      .stage:hover .chip {
+        transform: scale(1.04);
+        transition: transform 0.2s ease;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="stage idle" id="stage">
+      <div class="aura"></div>
+      <div class="chip">
+        <div class="notch"></div>
+        <div class="legs left">
+          <div class="leg"></div>
+          <div class="leg"></div>
+          <div class="leg"></div>
+          <div class="leg"></div>
+          <div class="leg"></div>
+        </div>
+        <div class="legs right">
+          <div class="leg"></div>
+          <div class="leg"></div>
+          <div class="leg"></div>
+          <div class="leg"></div>
+          <div class="leg"></div>
+        </div>
+        <div class="eyes">
+          <div class="eye"></div>
+          <div class="eye"></div>
+        </div>
+      </div>
+      <div class="bubble" id="bubble"></div>
+      <div class="click-zone" id="clickZone"></div>
+    </div>
+    <script src="pet-window.js"></script>
+  </body>
+</html>

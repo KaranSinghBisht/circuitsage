@@ -34,3 +34,4 @@ apps/desktop/out/
 .omc/state/subagent-tracking.json
 .omc/state/checkpoints/
 .omc/project-memory.json
+.omc/

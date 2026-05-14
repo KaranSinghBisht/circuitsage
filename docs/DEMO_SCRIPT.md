@@ -43,13 +43,17 @@ Use the same session throughout the main op-amp story.
 | Beat | Time | Scene | Camera angle | Overlay text | Voiceover line | Required proof |
 |---|---:|---|---|---|---|---|
 | 1 | 0:00-0:18 | Hook | Bench closeup, silent scope | Software has stack traces. Circuits do not. | Software students get stack traces. Electronics students get silence. | Show failed waveform or flat output. |
-| 2 | 0:18-0:42 | Studio tour | Screen capture | Evidence in one session | I load the op-amp demo: manual, netlist, waveform, measurements, and tool calls. | Show artifacts, parsed netlist, and deterministic tools. |
-| 3 | 0:42-1:05 | Bench handoff | Over-shoulder phone plus screen | Pair the phone | I hand the same session to the bench phone with a QR code. | Show QR and phone opening Bench Mode. |
-| 4 | 1:05-1:35 | Airplane-mode scene | Phone camera, status bar visible | On-device Gemma, no internet | Now the phone is in airplane mode and still answers from the local model. | Show airplane mode and diagnosis result. |
+| 2 | 0:18-0:38 | Studio tour | Screen capture | Evidence in one session | I load the op-amp demo: manual, netlist, waveform, measurements, and tool calls. | Show artifacts, parsed netlist, and deterministic tools. |
+| **3** | **0:38-1:10** | **Companion + LTspice (HERO)** | **Screen capture, LTspice + overlay** | **Multimodal + native tools** | **The student presses Cmd+Shift+Space inside LTspice. Gemma sees the schematic, names the topology, and runs the deterministic SPICE catalog.** | **Show overlay → topology detected → click-to-act buttons → datasheet brief inline.** |
+| 4 | 1:10-1:35 | Airplane-mode scene (optional) | Phone camera, status bar visible | On-device Gemma, no internet | The same loop runs locally on the phone in airplane mode. | Show airplane mode + structured diagnosis. **Skip if iOS bundle pending.** |
 | 5 | 1:35-2:10 | Fix and retest | Bench closeup plus scope screen | Ground the reference input | The fault is not magic: the non-inverting input is floating. Ground it and retest. | Show jumper fix and waveform recovery. |
-| 6 | 2:10-2:35 | Report | Screen capture | Lab report generated | CircuitSage turns the session into a report students can submit and instructors can review. | Show PDF pages. |
-| 7 | 2:35-2:55 | Educator dashboard | Screen capture | Class-wide misconceptions | Across demo sessions, the educator dashboard surfaces repeated faults and stalled measurements. | Show non-empty metrics and common faults. |
+| 6 | 2:10-2:30 | Report | Screen capture | Lab report generated | CircuitSage turns the session into a report students can submit and instructors can review. | Show PDF pages. |
+| 7 | 2:30-2:55 | Educator dashboard | Screen capture | Class-wide misconceptions | Across demo sessions, the dashboard surfaces repeated faults and stalled measurements. | Show non-empty metrics and common faults. |
 | 8 | 2:55-3:00 | Closing card | Static screen | CircuitSage | CircuitSage. Stack traces for circuits. | Show repo-ready app name and tagline. |
+
+> **Cut order if shoot runs long:** drop Beat 4 (airplane-mode) first, then Beat 6 (report), then compress Beat 7 (educator) to a single screen. Beat 3 (Companion + LTspice) is the hero — never cut it.
+
+> **Why Beat 3 is the hero:** the hackathon banner names *multimodal* + *native function calling* as the Gemma 4 differentiators. Beat 3 demonstrates both in one screen capture: vision call describes the LTspice canvas, then the deterministic SPICE catalog (`score_faults`) and the datasheet retriever (`lookup_datasheet`) run as click-to-act buttons. Competing entries in this hackathon are mostly study-companion chatbots; nothing else integrates with a real desktop EDA tool.
 
 ## Beat 1 - Hook
 
@@ -157,7 +161,81 @@ Continuity note: status can be deterministic fallback if Ollama is down.
 
 Cut point: QR code or Bench Mode button appears.
 
-## Beat 3 - Bench Handoff
+## Beat 3 - Companion + LTspice (HERO)
+
+Timebox: 0:38-1:10.
+
+Purpose: the centerpiece. Show the real "I'm in LTspice, ask Gemma what's wrong" loop with multimodal vision and click-to-act deterministic tools.
+
+`USER ACTION`: screen-record macOS with LTspice in the foreground and the CircuitSage Companion as a small floating overlay.
+
+Camera angle: full-screen capture of macOS desktop (LTspice + overlay).
+
+Screen source: LTspice with the canonical inverting op-amp `.asc` open; CircuitSage Companion overlay docked top-right.
+
+On-screen overlay text: "Multimodal + native tools".
+
+Voiceover: "Inside LTspice, the student presses Cmd+Shift+Space. Gemma sees the schematic in one vision call, names the topology, and runs the deterministic SPICE catalog as named tools. No tab switching, no manual upload."
+
+Action 1: LTspice is in focus with the broken inverting op-amp `.asc` (V+ floating, deliberate). Mouse hovers, no progress.
+
+Action 2: press `Cmd+Shift+Space`. Companion overlay appears top-right (always-on-top, < 420 px wide).
+
+Action 3: type into the overlay: "Why is the output saturating?"
+
+Action 4: click "Analyze Current Screen". The overlay shows a brief progress dot (5-10 s on `gemma3:4b`).
+
+Action 5: **DIP-Sage (the desktop pet) reacts on screen as the answer arrives** — eyes flip from idle green to *blue + pulsing aura* during the call, then bounce + green aura when the high-confidence diagnosis returns. Speech bubble shows "op amp inverting · high". This single beat is the strongest visual proof of the multimodal loop running locally.
+
+Action 5b: result panel renders:
+- Header: `ollama_gemma_vision · medium confidence · 7820 ms`.
+- Workspace title: `ltspice · op_amp_inverting`.
+- `visible_context`: short factual sentence ("inverting op-amp configuration with TL081-style ref U1, output stuck near +Vcc").
+- `answer`: composed text including the catalog top match ("Top catalog match: Floating non-inverting input ...").
+- `suspected_faults`: bullet list (1-2 items).
+- Three click-to-act buttons rendered inline.
+
+Action 6: click button "Score op_amp_inverting fault catalog". Result block expands inline showing ranked faults: floating_noninv_input (0.58), missing_feedback (0.55), rail_imbalance (0.35). 1 ms. Pause 2 seconds on this — judges need to see the deterministic catalog grounded the model output.
+
+Action 7: click button "Look up TL081 datasheet". Result block expands inline showing the TL081 brief. 1 ms. Pause 1 second.
+
+Action 8: click button "Capture again after grounding V+". (Optional — saves time if you skip and let the next beat show the fix.)
+
+Action 9 (optional B-roll): demonstrate the **highlight crop** by pressing `Cmd+Shift+X`, dragging a tight rectangle around just the op-amp triangle in the schematic, releasing — the overlay fades, the companion window pops with that crop pre-filled, and the auto-prompt fires after 700 ms. Use this as alternate hero footage if the full-window vision call looks muddled.
+
+Required proof: hotkey shortcut visible (overlay text "Cmd+Shift+Space" near the icon).
+
+Required proof: overlay shows `mode: ollama_gemma_vision` in the header (not deterministic_fallback). If Ollama is down at shoot time, retake after `ollama serve && ollama pull gemma3:4b`.
+
+Required proof: at least one click-to-act button is clicked and the inline tool result is visible for ≥ 2 s.
+
+Required proof: header shows non-zero `duration_ms` (proves single-call vision, not staged).
+
+Native-function-calling beat: the click-to-act buttons are exactly the "tool calls" judges expect when the banner says "native function calling". Make this visible in the overlay narration.
+
+Continuity note: this is the same op-amp fault as Beat 1 hook and Beat 5 fix.
+
+Continuity note: if `gemma3:4b` is not loaded, the header reads `deterministic_fallback` — RETAKE.
+
+B-roll option: tighter crop on the overlay header showing `ollama_gemma_vision`.
+
+B-roll option: tighter crop on the inline ranked-faults result.
+
+B-roll option: the typed actions row before any click.
+
+Retake if the overlay covers the LTspice schematic.
+
+Retake if the result panel shows `gemma_text_unparsed` (model returned prose; re-prompt and re-shoot).
+
+Retake if no click-to-act button is rendered (means topology detection failed — re-prompt with sharper question).
+
+Retake if the duration exceeds 25 seconds (model is too slow; verify `OLLAMA_VISION_MODEL=gemma3:4b`, not `gemma4:e4b`).
+
+Cut point: just after the inline tool result is visible, before fixing the circuit.
+
+## Beat 4 - Bench Handoff (cut if time)
+
+Optional beat — only film if total runtime would be under 3:00 with it. Hero is now Beat 3.
 
 Timebox: 0:42-1:05.
 

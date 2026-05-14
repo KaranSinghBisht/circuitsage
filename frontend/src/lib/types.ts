@@ -57,17 +57,47 @@ export type LabSession = {
   report?: string;
 };
 
+export type CompanionTypedAction = {
+  label: string;
+  action: "tool_call" | "capture" | "measurement";
+  args: Record<string, unknown>;
+};
+
+export type CompanionToolResult = {
+  tool: string;
+  label?: string;
+  args?: Record<string, unknown>;
+  result: unknown;
+};
+
 export type CompanionAnalysis = {
   mode?: string;
   workspace: string;
   visible_context: string;
   answer: string;
   next_actions: string[];
+  actions?: CompanionTypedAction[];
+  tool_results?: CompanionToolResult[];
+  detected_topology?: string;
+  detected_components?: Array<{ ref?: string; model?: string }>;
+  detected_measurements?: Array<{ label: string; value: number; unit: string }>;
+  suspected_faults?: string[];
+  session_id?: string;
+  session_title?: string;
+  turn_count?: number;
   can_click: boolean;
   safety?: { risk_level: string; warnings: string[] };
   confidence?: string;
+  duration_ms?: number;
   gemma_error?: string;
   raw?: string;
+};
+
+export type CompanionRunToolResponse = {
+  tool: string;
+  args: Record<string, unknown>;
+  result: unknown;
+  duration_ms: number;
 };
 
 export type StreamSnapshot = {

@@ -8,7 +8,7 @@ import uuid
 from contextlib import asynccontextmanager
 from collections import Counter
 from collections import deque
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from time import monotonic
 from typing import Annotated
@@ -25,6 +25,7 @@ from .database import db, init_db, read_text_excerpt, row_to_dict, rows_to_dicts
 from .schemas import (
     ChatRequest,
     CompanionAnalyzeRequest,
+    CompanionRunToolRequest,
     DiagnosisRequest,
     LabSessionCreate,
     LabSessionUpdate,
@@ -32,8 +33,14 @@ from .schemas import (
     MeasurementStreamCreate,
 )
 from .services.agent_orchestrator import build_report, diagnose_session
-from .services.fault_catalog import CATALOG
+from .services.companion_orchestrator import (
+    SUPPORTED_TOPOLOGIES as COMPANION_SUPPORTED_TOPOLOGIES,
+    analyze as companion_orchestrator_analyze,
+)
+from .services.fault_catalog import CATALOG, score as score_faults
 from .services.ollama_client import OllamaClient, parse_json_response
+from .tools.datasheet import datasheet_prompt_context
+from .tools.rag import retrieve as retrieve_rag
 from .services.streaming import add_sample as add_stream_sample
 from .services.streaming import snapshot as stream_snapshot
 from .tools.parse_netlist import parse_netlist_file
@@ -190,13 +197,121 @@ def _image_base64_from_data_url(data_url: str | None) -> str | None:
 
 def _guess_workspace(app_hint: str, question: str, source_title: str = "") -> str:
     text = f"{app_hint} {source_title} {question}".lower()
-    if "tinkercad" in text or "arduino" in text:
+    if "tinkercad" in text or "arduino" in text or "breadboard" in text or "bulb" in text or "led" in text:
         return "tinkercad"
-    if "ltspice" in text or "spice" in text or ".tran" in text or ".op" in text:
+    if "ltspice" in text or "spice" in text or ".tran" in text or ".op" in text or ".asc" in text:
         return "ltspice"
     if "matlab" in text or "simulink" in text or "plot" in text or ".m" in text:
         return "matlab"
     return "electronics_workspace"
+
+
+COMPANION_SESSION_REUSE_WINDOW_S = 4 * 60 * 60  # 4 hours
+COMPANION_RECENT_TURNS = 3
+
+
+def _companion_session_title(workspace: str) -> str:
+    label = {
+        "ltspice": "LTspice",
+        "tinkercad": "Tinkercad",
+        "matlab": "MATLAB",
+        "simulink": "Simulink",
+        "oscilloscope": "Oscilloscope",
+        "browser_lab": "Browser lab",
+        "electronics_workspace": "Electronics workspace",
+    }.get(workspace, workspace.replace("_", " ").title())
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    return f"Companion · {label} · {today}"
+
+
+def _resolve_or_create_companion_session(
+    requested_id: str | None, workspace: str
+) -> dict:
+    """Return an existing companion session if recent and matching, else create a new one.
+
+    Lets the LTspice→ask→ask→ask flow accumulate evidence in one session without
+    requiring the desktop overlay to manage state. A new session opens per workspace
+    after a 4-hour quiet period.
+    """
+    now_iso = utc_now()
+    with db() as conn:
+        if requested_id:
+            row = conn.execute("SELECT * FROM lab_sessions WHERE id = ?", (requested_id,)).fetchone()
+            if row:
+                return row_to_dict(row) or {}
+
+        recent = conn.execute(
+            """
+            SELECT * FROM lab_sessions
+            WHERE experiment_type = ?
+              AND title LIKE 'Companion %'
+              AND updated_at >= datetime('now', ?)
+            ORDER BY updated_at DESC
+            LIMIT 1
+            """,
+            (f"companion_{workspace}", f"-{COMPANION_SESSION_REUSE_WINDOW_S} seconds"),
+        ).fetchone()
+        if recent:
+            return row_to_dict(recent) or {}
+
+        session_id = str(uuid.uuid4())
+        conn.execute(
+            """
+            INSERT INTO lab_sessions (id, title, student_level, experiment_type, status, created_at, updated_at, summary)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                session_id,
+                _companion_session_title(workspace),
+                "companion",
+                f"companion_{workspace}",
+                "bench",
+                now_iso,
+                now_iso,
+                "Auto-created from CircuitSage Companion screen capture.",
+            ),
+        )
+        row = conn.execute("SELECT * FROM lab_sessions WHERE id = ?", (session_id,)).fetchone()
+    return row_to_dict(row) or {}
+
+
+def _save_companion_message(session_id: str, role: str, content: str, metadata: dict | None = None) -> None:
+    if not content:
+        return
+    with db() as conn:
+        conn.execute(
+            """
+            INSERT INTO messages (id, session_id, role, content, metadata_json, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                str(uuid.uuid4()),
+                session_id,
+                role,
+                content,
+                json.dumps({"source": "companion", **(metadata or {})}),
+                utc_now(),
+            ),
+        )
+        conn.execute(
+            "UPDATE lab_sessions SET updated_at = ? WHERE id = ?",
+            (utc_now(), session_id),
+        )
+
+
+def _load_companion_recent_turns(session_id: str, limit: int = COMPANION_RECENT_TURNS) -> list[dict]:
+    """Return last N (user, assistant) message pairs for the given companion session."""
+    with db() as conn:
+        rows = conn.execute(
+            """
+            SELECT role, content, created_at FROM messages
+            WHERE session_id = ? AND role IN ('user', 'assistant')
+            ORDER BY created_at DESC
+            LIMIT ?
+            """,
+            (session_id, limit * 2),
+        ).fetchall()
+    return [{"role": row["role"], "content": row["content"]} for row in reversed(rows)]
 
 
 def _save_companion_snapshot(session_id: str, image_bytes: bytes) -> dict:
@@ -323,112 +438,132 @@ async def schematic_to_netlist_endpoint(
 
 @app.post("/api/companion/analyze")
 async def companion_analyze(payload: CompanionAnalyzeRequest) -> dict:
-    safety = safety_check(payload.question)
+    """Companion entry. Safety-first ordering: refuse and short-circuit BEFORE
+    persisting anything dangerous; gate disk writes on `save_snapshot`; load
+    prior turns BEFORE saving the current user message so the new question
+    doesn't echo back into its own prompt.
+    """
     image_bytes = _decode_data_url(payload.image_data_url)
     image_base64 = _image_base64_from_data_url(payload.image_data_url)
     workspace = _guess_workspace(payload.app_hint, payload.question, payload.source_title)
+
+    # Safety screen before we touch the database. A high-voltage question
+    # never gets persisted as a user message and never creates a session.
+    pre_safety = safety_check(payload.question or "")
+    if not pre_safety["allowed"]:
+        return await companion_orchestrator_analyze(
+            question=payload.question,
+            image_base64=None,  # do not relay the image either
+            workspace=workspace,
+            app_hint=payload.app_hint,
+            source_title=payload.source_title,
+            lang=payload.lang,
+            settings=settings,
+            saved_artifact=None,
+            prior_turns=[],
+        )
+
+    session = _resolve_or_create_companion_session(payload.session_id, workspace)
+    session_id = session["id"]
+
+    # Load prior context BEFORE we persist the new question so the prompt
+    # gets {prior turns ... + current question} not {... + current question
+    # echoed back as the most recent prior turn}.
+    prior_turns = _load_companion_recent_turns(session_id)
+
     saved_artifact = None
+    if image_bytes and payload.save_snapshot:
+        saved_artifact = _save_companion_snapshot(session_id, image_bytes)
 
-    if payload.session_id and payload.save_snapshot and image_bytes:
-        saved_artifact = _save_companion_snapshot(payload.session_id, image_bytes)
-
-    if not safety["allowed"]:
-        return {
-            "mode": "safety_refusal",
-            "workspace": workspace,
-            "visible_context": "Screen analysis stopped because high-voltage or mains risk was mentioned.",
-            "answer": safety["message"],
-            "next_actions": ["Power down and ask an instructor or qualified technician."],
-            "can_click": False,
-            "safety": {"risk_level": safety["risk_level"], "warnings": safety["warnings"]},
-            "confidence": "high",
-            "saved_artifact": saved_artifact,
-        }
-
-    fallback = _companion_fallback(payload.question, workspace, bool(image_base64), safety)
-    prompt = f"""
-You are CircuitSage Companion, an always-on local lab buddy for electronics students.
-
-You are looking at a screenshot from a student's active workspace. The workspace may be Tinkercad, LTspice, MATLAB, Simulink, a browser lab manual, a waveform plot, or a circuit simulator.
-
-Student question:
-{payload.question or "No explicit question. Inspect the screen and suggest what to check next."}
-
-App hint:
-{payload.app_hint}
-
-Source/window title:
-{payload.source_title or "unknown"}
-
-Requested language:
-{payload.lang}
-
-Return compact JSON:
-{{
-  "workspace": "tinkercad | ltspice | matlab | electronics_workspace | unknown",
-  "visible_context": "what you can actually see, with uncertainty",
-  "answer": "direct help for the student",
-  "next_actions": ["short concrete step", "short concrete step", "short concrete step"],
-  "can_click": false,
-  "safety": {{"risk_level": "low_voltage_lab | high_voltage_or_mains", "warnings": ["..."]}},
-  "confidence": "low | medium | high"
-}}
-
-Rules:
-- Do not claim you can see details that are not visible.
-- For LTspice, focus on net labels, ground, source settings, rails, and waveform probes.
-- For MATLAB, focus on plots, units, arrays, sample rate, transfer functions, and numerical checks.
-- For Tinkercad, focus on wiring, pin order, ground, polarity, code/simulation mismatch, and measured nodes.
-- If evidence is incomplete, ask for the next measurement or the next screen to inspect.
-- Keep JSON keys in English. Translate user-facing explanation, next actions, and warnings to the requested language.
-- Refuse detailed live debugging for mains/high-voltage.
-"""
-    if not image_base64:
-        return {**fallback, "saved_artifact": saved_artifact}
-
-    try:
-        vision_result = await OllamaClient(settings.ollama_base_url, settings.ollama_vision_model).chat(
-            [
-                {
-                    "role": "user",
-                    "content": f"{prompt}\n\nFirst describe the visible screen evidence and next actions in plain text.",
-                    "images": [image_base64],
-                }
-            ],
-            format_json=False,
+    if payload.question:
+        _save_companion_message(
+            session_id,
+            "user",
+            payload.question,
+            {"workspace": workspace, "source_title": payload.source_title or ""},
         )
-        vision_text = vision_result["content"]
-        structure_prompt = f"""
-Convert this CircuitSage Companion vision analysis into the required compact JSON schema.
 
-Original student question:
-{payload.question}
+    response = await companion_orchestrator_analyze(
+        question=payload.question,
+        image_base64=image_base64,
+        workspace=workspace,
+        app_hint=payload.app_hint,
+        source_title=payload.source_title,
+        lang=payload.lang,
+        settings=settings,
+        saved_artifact=saved_artifact,
+        prior_turns=prior_turns,
+    )
 
-Vision analysis:
-{vision_text}
+    response["session_id"] = session_id
+    response["session_title"] = session.get("title", "")
+    response["turn_count"] = len(prior_turns) // 2 + 1
 
-Return only JSON with keys:
-workspace, visible_context, answer, next_actions, can_click, safety, confidence
-"""
-        structured_result = await OllamaClient(settings.ollama_base_url, settings.ollama_vision_model).chat(
-            [{"role": "user", "content": structure_prompt}],
-            format_json=True,
+    assistant_text = response.get("user_facing_answer") or response.get("answer", "")
+    if assistant_text:
+        _save_companion_message(
+            session_id,
+            "assistant",
+            assistant_text,
+            {
+                "mode": response.get("mode"),
+                "detected_topology": response.get("detected_topology"),
+                "confidence": response.get("confidence"),
+            },
         )
-        result = structured_result["content"]
-        parsed = parse_json_response(result)
-        if not parsed:
-            return {**fallback, "mode": "gemma_text_unparsed", "raw": result[:1200], "saved_artifact": saved_artifact}
-        parsed.setdefault("mode", "ollama_gemma_vision")
-        parsed.setdefault("can_click", False)
-        parsed.setdefault("saved_artifact", saved_artifact)
-        return parsed
-    except Exception as exc:  # noqa: BLE001 - fallback is required when Ollama is missing.
-        return {
-            **fallback,
-            "mode": "deterministic_fallback",
-            "gemma_error": f"{exc.__class__.__name__}: {exc}",
-            "saved_artifact": saved_artifact,
-        }
+
+    return response
+
+
+@app.post("/api/companion/run-tool")
+async def companion_run_tool(payload: CompanionRunToolRequest) -> dict:
+    """Click-to-act endpoint for the companion overlay's typed actions (P3).
+
+    The overlay surfaces deterministic tools as buttons. Clicking one POSTs here.
+    Result is returned inline and (if session_id provided) saved as a tool message.
+    """
+    import time as _time
+    started = _time.perf_counter()
+    tool = payload.tool
+    args = payload.args or {}
+
+    if tool == "score_faults":
+        topology = str(args.get("topology", "")).strip()
+        if topology not in COMPANION_SUPPORTED_TOPOLOGIES:
+            raise HTTPException(status_code=400, detail=f"unsupported topology: {topology}")
+        ranked = score_faults(topology, {"likely_fault_categories": []}, [])
+        result = {"topology": topology, "ranked_faults": ranked[:5]}
+    elif tool == "lookup_datasheet":
+        part_number = str(args.get("part_number", "")).strip()
+        if not part_number:
+            raise HTTPException(status_code=400, detail="part_number is required")
+        raw = lookup_datasheet(part_number)
+        result = datasheet_prompt_context(raw)
+    elif tool == "retrieve_rag":
+        query = str(args.get("query", "")).strip()
+        if not query:
+            raise HTTPException(status_code=400, detail="query is required")
+        topology = args.get("topology")
+        topology_filter = topology if topology in COMPANION_SUPPORTED_TOPOLOGIES else None
+        result = retrieve_rag(query, topology=topology_filter, k=3)
+    else:  # pragma: no cover - guarded by Literal in schema
+        raise HTTPException(status_code=400, detail=f"unknown tool: {tool}")
+
+    duration_ms = round((_time.perf_counter() - started) * 1000)
+
+    if payload.session_id:
+        try:
+            _get_session_or_404(payload.session_id)
+            _save_companion_message(
+                payload.session_id,
+                "assistant",
+                f"Ran tool `{tool}` ({duration_ms} ms).",
+                {"tool_name": tool, "args": args, "duration_ms": duration_ms},
+            )
+        except HTTPException:
+            pass  # session not found is non-fatal for the click-to-act flow
+
+    return {"tool": tool, "args": args, "result": result, "duration_ms": duration_ms}
 
 
 @app.post("/api/sessions")

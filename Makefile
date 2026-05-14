@@ -5,6 +5,11 @@ SHELL := /usr/bin/env bash
 BACKEND_PY := backend/.venv/bin/python
 UVICORN := backend/.venv/bin/uvicorn
 
+ifneq (,$(wildcard ./.env))
+include .env
+export
+endif
+
 install:
 	bash scripts/install.sh
 

@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CircuitSage Highlight</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+        cursor: crosshair;
+        background: transparent;
+        user-select: none;
+        color: #d4ffe5;
+        font-family: -apple-system, system-ui, "Helvetica Neue", sans-serif;
+      }
+      #backdrop {
+        position: fixed;
+        inset: 0;
+        background-color: #0c100e;
+        background-size: cover;
+        background-position: top left;
+        background-repeat: no-repeat;
+        opacity: 0.55;
+        pointer-events: none;
+      }
+      #scrim {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.3);
+        pointer-events: none;
+      }
+      #rect {
+        position: fixed;
+        border: 2px solid #5cfba6;
+        background: rgba(92, 251, 166, 0.08);
+        pointer-events: none;
+        display: none;
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+      }
+      #hint {
+        position: fixed;
+        top: 22px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(12, 16, 14, 0.94);
+        border: 1px solid rgba(92, 251, 166, 0.55);
+        border-radius: 999px;
+        padding: 10px 22px;
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        pointer-events: none;
+        z-index: 10;
+      }
+      #dims {
+        position: fixed;
+        background: rgba(12, 16, 14, 0.92);
+        border: 1px solid rgba(92, 251, 166, 0.6);
+        color: #d4ffe5;
+        font-size: 11px;
+        padding: 3px 8px;
+        border-radius: 4px;
+        pointer-events: none;
+        display: none;
+        z-index: 11;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="backdrop"></div>
+    <div id="scrim"></div>
+    <div id="hint">Drag to highlight · Esc to cancel</div>
+    <div id="rect"></div>
+    <div id="dims"></div>
+    <script src="highlight-overlay.js"></script>
+  </body>
+</html>

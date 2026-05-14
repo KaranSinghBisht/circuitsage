@@ -1,4 +1,4 @@
-import type { CompanionAnalysis, LabSession, Measurement, ModelHealth, StreamSnapshot } from "./types";
+import type { CompanionAnalysis, CompanionRunToolResponse, LabSession, Measurement, ModelHealth, StreamSnapshot } from "./types";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
 
@@ -104,6 +104,15 @@ export const api = {
     lang?: string;
   }) =>
     request<CompanionAnalysis>("/api/companion/analyze", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  companionRunTool: (payload: {
+    tool: "score_faults" | "lookup_datasheet" | "retrieve_rag";
+    args: Record<string, unknown>;
+    session_id?: string;
+  }) =>
+    request<CompanionRunToolResponse>("/api/companion/run-tool", {
       method: "POST",
       body: JSON.stringify(payload),
     }),

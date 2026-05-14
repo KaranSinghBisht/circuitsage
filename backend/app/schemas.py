@@ -113,3 +113,9 @@ class CompanionAnalyzeRequest(BaseModel):
     session_id: str | None = None
     save_snapshot: bool = False
     lang: str = "en"
+
+
+class CompanionRunToolRequest(BaseModel):
+    tool: Literal["score_faults", "lookup_datasheet", "retrieve_rag"]
+    args: dict[str, Any] = Field(default_factory=dict)
+    session_id: str | None = None

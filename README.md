@@ -33,6 +33,13 @@ No local install required:
 - **Dataset** — https://www.kaggle.com/datasets/karansinghbisht/circuitsage-faults-v1 *(6,000 rows, 4,978 unique prompts)*
 - **Hosted demo** — see [docs/FLY_DEPLOY.md](docs/FLY_DEPLOY.md) (URL added once deploy lands)
 
+What makes the experience real:
+
+- **Desktop pet** that lives in the menu bar and reacts visually to vision calls (blue while thinking, green bounce on a high-confidence diagnosis, yellow squint on low confidence, red on safety refusal). See [apps/desktop/README.md](apps/desktop/README.md).
+- **Highlight hotkey** (`⌘⇧X`) drops a crosshair so the student can crop just the part of the schematic they're asking about — the crop, not the whole screen, is what Gemma sees. Dramatically improves vision recognition vs. full-screen capture.
+- **Single-call vision with deterministic tool chaining**: one Gemma 3 4B vision call returns structured JSON; the orchestrator then runs `score_faults`, `lookup_datasheet`, and `retrieve_rag` against the deterministic SPICE catalog. Click-to-act buttons surface every tool result inline.
+- **Modal-hosted Ollama** ([docs/HOSTED_OLLAMA_MODAL.md](docs/HOSTED_OLLAMA_MODAL.md)) for students whose laptop can't host Gemma locally. Architecture is unchanged — one env var swap.
+
 ## What's Inside
 
 - Studio: session workspace for artifacts, measurements, netlist preview, diagnosis, reports, and QR handoff at `/studio/:id`.
@@ -102,13 +109,27 @@ Model card placeholder: `train/output/MODEL_CARD.md` (created in E5).
 
 ## Ollama
 
+Default model is `gemma3:4b` (multimodal vision, fits a 2024-era laptop):
+
 ```bash
 ollama serve
-ollama pull gemma4:e4b
-export OLLAMA_MODEL=gemma4:e4b
+ollama pull gemma3:4b
+export OLLAMA_MODEL=gemma3:4b
+export OLLAMA_VISION_MODEL=gemma3:4b
 export OLLAMA_BASE_URL=http://localhost:11434
 bash scripts/check_ollama.sh
 ```
+
+If your laptop can't host `gemma3:4b` locally (e.g. 8 GB Mac), point the backend at a **Modal-hosted Ollama** instead — no code changes, one env var:
+
+```bash
+pip install modal && modal token new
+modal deploy scripts/deploy_ollama_modal.py
+# Modal prints a URL; put it in .env:
+echo "OLLAMA_BASE_URL=https://<your-handle>--circuitsage-ollama-serve.modal.run" > .env
+```
+
+Full instructions: [docs/HOSTED_OLLAMA_MODAL.md](docs/HOSTED_OLLAMA_MODAL.md).
 
 If Ollama or the configured model is unavailable, the UI shows an amber Gemma status banner and the backend returns `gemma_status: deterministic_fallback`. Successful model runs report `ollama_gemma_agentic` or `ollama_gemma_single_shot`; malformed model output reports `ollama_partial`.
 

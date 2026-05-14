@@ -25,7 +25,7 @@ Source: `docs/WINNING_FORWARD_PLAN.md` Section 9.
 | [ ] | Tag: `git tag v1.0.0-submission && git push --tags`. |
 | [ ] | Submitted on Kaggle with repo URL, video URL, writeup URL. |
 | [x] | Local deterministic fallback reports honest `gemma_status` when Ollama is down. |
-| [ ] | Desktop Companion can be opened with the global shortcut and can analyze a selected screen/window. |
+| [x] | Desktop Companion can be opened with the global shortcut and can analyze a selected screen/window. (CmdOrCtrl+Shift+Space for window, CmdOrCtrl+Shift+X for highlight crop; menu-bar resident with desktop pet that reacts to vision-call state.) |
 | [ ] | Bench Mode QR flow can attach measurements and media to an existing session. |
 | [x] | Dataset validation passes with balanced topology distribution and prompt de-duplication. |
 | [x] | Demo smoke script passes across topology seeds, educator overview, and PDF report. |

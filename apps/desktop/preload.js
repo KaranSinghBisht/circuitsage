@@ -4,6 +4,7 @@ contextBridge.exposeInMainWorld("circuitSage", {
   getSources: () => ipcRenderer.invoke("sources:list"),
   getActiveWindow: () => ipcRenderer.invoke("context:activeWindow"),
   analyze: (payload) => ipcRenderer.invoke("companion:analyze", payload),
+  runTool: (payload) => ipcRenderer.invoke("companion:runTool", payload),
   openExternal: (url) => ipcRenderer.invoke("shell:openExternal", url),
   openPermissions: (kind) => ipcRenderer.invoke("permissions:open", kind),
   clickPoint: (point) => ipcRenderer.invoke("automation:click", point),

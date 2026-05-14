@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
-import { Bot, Camera, ExternalLink, Eye, EyeOff, MonitorUp, ScanEye, Send } from "lucide-react";
+import { Bot, Camera, ExternalLink, Eye, EyeOff, MonitorUp, Play, ScanEye, Send } from "lucide-react";
 import { api } from "../lib/api";
-import type { CompanionAnalysis, LabSession } from "../lib/types";
+import type { CompanionAnalysis, CompanionTypedAction, LabSession } from "../lib/types";
 import { useI18n } from "../hooks/useI18n";
 
 export function Companion() {
@@ -21,6 +21,8 @@ export function Companion() {
   const [analysis, setAnalysis] = useState<CompanionAnalysis | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [actionResults, setActionResults] = useState<Record<string, unknown>>({});
+  const [actionBusy, setActionBusy] = useState<string | null>(null);
 
   useEffect(() => {
     api.sessions().then(setSessions).catch(() => undefined);
@@ -62,14 +64,60 @@ export function Companion() {
   async function analyzeCurrent() {
     setBusy(true);
     setError("");
+    setActionResults({});
     try {
       const shot = captureFrame() || lastShot;
       if (shot) setLastShot(shot);
-      setAnalysis(await api.companionAnalyze({ question, image_data_url: shot || undefined, app_hint: appHint, session_id: sessionId || undefined, save_snapshot: saveSnapshot, lang: locale }));
+      const next = await api.companionAnalyze({
+        question,
+        image_data_url: shot || undefined,
+        app_hint: appHint,
+        session_id: sessionId || undefined,
+        save_snapshot: saveSnapshot,
+        lang: locale,
+      });
+      setAnalysis(next);
+      if (next.session_id && next.session_id !== sessionId) setSessionId(next.session_id);
     } catch (exc) {
       setError(exc instanceof Error ? exc.message : t.companionAnalysisFailed);
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function runAction(action: CompanionTypedAction) {
+    if (action.action === "capture") {
+      analyzeCurrent().catch(() => undefined);
+      return;
+    }
+    if (action.action === "measurement") {
+      setActionResults((prior) => ({
+        ...prior,
+        [action.label]: { hint: "Open Bench Mode to enter this measurement, then re-ask.", args: action.args },
+      }));
+      return;
+    }
+    const toolName = (action.args?.tool as string) || "";
+    if (!toolName || !["score_faults", "lookup_datasheet", "retrieve_rag"].includes(toolName)) {
+      setActionResults((prior) => ({ ...prior, [action.label]: { error: "Unknown tool" } }));
+      return;
+    }
+    const { tool: _ignored, already_ran: _ran, ...args } = action.args as Record<string, unknown>;
+    setActionBusy(action.label);
+    try {
+      const response = await api.companionRunTool({
+        tool: toolName as "score_faults" | "lookup_datasheet" | "retrieve_rag",
+        args,
+        session_id: analysis?.session_id || sessionId || undefined,
+      });
+      setActionResults((prior) => ({ ...prior, [action.label]: response.result }));
+    } catch (exc) {
+      setActionResults((prior) => ({
+        ...prior,
+        [action.label]: { error: exc instanceof Error ? exc.message : "tool failed" },
+      }));
+    } finally {
+      setActionBusy(null);
     }
   }
 
@@ -138,22 +186,71 @@ export function Companion() {
       </section>
       <section className="companion-output">
         <div className="snapshot-card"><h2>{t.latestFrame}</h2>{lastShot ? <img src={lastShot} alt={t.latestCapturedScreen} /> : <p className="muted">{t.noFrameCaptured}</p>}</div>
-        <CompanionResult analysis={analysis} />
+        <CompanionResult
+          analysis={analysis}
+          onAction={runAction}
+          actionResults={actionResults}
+          actionBusy={actionBusy}
+        />
       </section>
     </main>
   );
 }
 
-function CompanionResult({ analysis }: { analysis: CompanionAnalysis | null }) {
+function CompanionResult({
+  analysis,
+  onAction,
+  actionResults,
+  actionBusy,
+}: {
+  analysis: CompanionAnalysis | null;
+  onAction: (action: CompanionTypedAction) => void;
+  actionResults: Record<string, unknown>;
+  actionBusy: string | null;
+}) {
   const { t } = useI18n();
   if (!analysis) return <section className="analysis-card"><h2>{t.liveHelp}</h2><p className="muted">{t.companionEmptyHelp}</p></section>;
+  const typedActions = analysis.actions ?? [];
   return (
     <section className="analysis-card">
-      <div className="card-head"><Bot size={18} /><span>{analysis.mode ?? "analysis"} · {analysis.confidence ?? "unknown"} {t.confidence}</span></div>
-      <h2>{analysis.workspace}</h2>
+      <div className="card-head">
+        <Bot size={18} />
+        <span>{analysis.mode ?? "analysis"} · {analysis.confidence ?? "unknown"} {t.confidence}{analysis.duration_ms ? ` · ${analysis.duration_ms} ms` : ""}</span>
+      </div>
+      <h2>{analysis.workspace}{analysis.detected_topology && analysis.detected_topology !== "unknown" ? ` · ${analysis.detected_topology}` : ""}</h2>
       <p>{analysis.visible_context}</p>
       <strong>{analysis.answer}</strong>
-      <div className="next-measure"><span>{t.nextActions}</span><ul>{(analysis.next_actions ?? []).map((action) => <li key={action}>{action}</li>)}</ul></div>
+      {analysis.suspected_faults && analysis.suspected_faults.length > 0 && (
+        <ul className="suspected-faults">
+          {analysis.suspected_faults.map((fault) => <li key={fault}>{fault}</li>)}
+        </ul>
+      )}
+      {typedActions.length > 0 && (
+        <div className="action-buttons">
+          <span>{t.nextActions}</span>
+          <div className="action-row">
+            {typedActions.map((action) => (
+              <button
+                key={action.label}
+                className="action-chip"
+                onClick={() => onAction(action)}
+                disabled={actionBusy === action.label}
+              >
+                <Play size={14} /> {actionBusy === action.label ? "…" : action.label}
+              </button>
+            ))}
+          </div>
+          {Object.entries(actionResults).map(([label, value]) => (
+            <pre key={label} className="action-result"><strong>{label}</strong>{"\n"}{JSON.stringify(value, null, 2).slice(0, 1200)}</pre>
+          ))}
+        </div>
+      )}
+      {typedActions.length === 0 && (
+        <div className="next-measure">
+          <span>{t.nextActions}</span>
+          <ul>{(analysis.next_actions ?? []).map((action) => <li key={action}>{action}</li>)}</ul>
+        </div>
+      )}
       {analysis.gemma_error && <small className="error-text">{analysis.gemma_error}</small>}
       {analysis.raw && <pre>{analysis.raw}</pre>}
     </section>
