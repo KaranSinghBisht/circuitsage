@@ -8,7 +8,21 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
   });
   if (!response.ok) {
-    throw new Error(await response.text());
+    const body = await response.text();
+    // FastAPI returns {"detail": "..."} on 4xx/5xx — surface that string
+    // instead of dumping the raw JSON envelope into a toast/error message.
+    let message = body;
+    try {
+      const parsed = JSON.parse(body);
+      if (parsed && typeof parsed.detail === "string") {
+        message = parsed.detail;
+      } else if (parsed && Array.isArray(parsed.detail)) {
+        message = parsed.detail.map((d: { msg?: string }) => d?.msg || JSON.stringify(d)).join("; ");
+      }
+    } catch {
+      // body wasn't JSON — keep raw text
+    }
+    throw new Error(`${response.status} ${message}`);
   }
   return response.json() as Promise<T>;
 }

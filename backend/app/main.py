@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import hashlib
 import io
 import json
 import shutil
@@ -230,15 +231,36 @@ def _companion_session_title(workspace: str) -> str:
     return f"Companion · {label} · {today}"
 
 
+def _companion_owner_key(request: "Request | None") -> str:
+    """Partition companion sessions per remote IP on the hosted demo so two
+    judges don't share the same `prior_turns`, message history, or saved
+    snapshots. Local dev uses a single 'shared' bucket so the existing
+    LTspice→ask→ask→ask flow keeps reusing one session."""
+    if not settings.hosted_demo:
+        return "shared"
+    if request is None or request.client is None:
+        return "shared"
+    digest = hashlib.sha256(request.client.host.encode("utf-8")).hexdigest()
+    return digest[:12]
+
+
+def _companion_experiment_type(workspace: str, owner_key: str) -> str:
+    if owner_key == "shared":
+        return f"companion_{workspace}"
+    return f"companion_{workspace}_{owner_key}"
+
+
 def _resolve_or_create_companion_session(
-    requested_id: str | None, workspace: str
+    requested_id: str | None, workspace: str, owner_key: str = "shared"
 ) -> dict:
     """Return an existing companion session if recent and matching, else create a new one.
 
     Lets the LTspice→ask→ask→ask flow accumulate evidence in one session without
     requiring the desktop overlay to manage state. A new session opens per workspace
-    after a 4-hour quiet period.
+    after a 4-hour quiet period. On the hosted demo each owner_key (=hashed remote
+    IP) gets its own bucket so judges don't see each other's history.
     """
+    experiment_type = _companion_experiment_type(workspace, owner_key)
     now_iso = utc_now()
     with db() as conn:
         if requested_id:
@@ -255,7 +277,7 @@ def _resolve_or_create_companion_session(
             ORDER BY updated_at DESC
             LIMIT 1
             """,
-            (f"companion_{workspace}", f"-{COMPANION_SESSION_REUSE_WINDOW_S} seconds"),
+            (experiment_type, f"-{COMPANION_SESSION_REUSE_WINDOW_S} seconds"),
         ).fetchone()
         if recent:
             return row_to_dict(recent) or {}
@@ -270,7 +292,7 @@ def _resolve_or_create_companion_session(
                 session_id,
                 _companion_session_title(workspace),
                 "companion",
-                f"companion_{workspace}",
+                experiment_type,
                 "bench",
                 now_iso,
                 now_iso,
@@ -306,12 +328,18 @@ def _save_companion_message(session_id: str, role: str, content: str, metadata: 
 
 
 def _load_companion_recent_turns(session_id: str, limit: int = COMPANION_RECENT_TURNS) -> list[dict]:
-    """Return last N (user, assistant) message pairs for the given companion session."""
+    """Return last N (user, assistant) message pairs for the given companion session.
+
+    Filters on `metadata_json LIKE '%"source": "companion"%'` so a session that
+    was also touched by Studio chat (different `/api/sessions/{id}/chat` flow)
+    doesn't leak Studio messages into the Companion's prompt context.
+    """
     with db() as conn:
         rows = conn.execute(
             """
             SELECT role, content, created_at FROM messages
             WHERE session_id = ? AND role IN ('user', 'assistant')
+              AND metadata_json LIKE '%"source": "companion"%'
             ORDER BY created_at DESC
             LIMIT ?
             """,
@@ -443,7 +471,7 @@ async def schematic_to_netlist_endpoint(
 
 
 @app.post("/api/companion/analyze")
-async def companion_analyze(payload: CompanionAnalyzeRequest) -> dict:
+async def companion_analyze(payload: CompanionAnalyzeRequest, request: Request) -> dict:
     """Companion entry. Safety-first ordering: refuse and short-circuit BEFORE
     persisting anything dangerous; gate disk writes on `save_snapshot`; load
     prior turns BEFORE saving the current user message so the new question
@@ -497,7 +525,8 @@ async def companion_analyze(payload: CompanionAnalyzeRequest) -> dict:
             "saved_artifact": None,
         }
 
-    session = _resolve_or_create_companion_session(payload.session_id, workspace)
+    owner_key = _companion_owner_key(request)
+    session = _resolve_or_create_companion_session(payload.session_id, workspace, owner_key)
     session_id = session["id"]
 
     # Load prior context BEFORE we persist the new question so the prompt

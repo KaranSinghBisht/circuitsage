@@ -29,10 +29,16 @@ class OllamaClient:
 
         fallback = False
         last_error: Exception | None = None
-        timeout = httpx.Timeout(connect=5.0, read=300.0, write=30.0, pool=5.0)
+        # First attempt: long read window for cold-start vision calls (Modal can
+        # take 60-120s on first model load). Second attempt: tight 30s ceiling
+        # so a hung upstream can't hold the request handler for 10 minutes.
+        timeouts = [
+            httpx.Timeout(connect=5.0, read=300.0, write=30.0, pool=5.0),
+            httpx.Timeout(connect=5.0, read=30.0, write=15.0, pool=5.0),
+        ]
         for attempt in range(2):
             try:
-                async with httpx.AsyncClient(timeout=timeout) as client:
+                async with httpx.AsyncClient(timeout=timeouts[attempt]) as client:
                     response = await client.post(f"{self.base_url}/api/chat", json=payload)
                     response.raise_for_status()
                     data = response.json()
@@ -44,7 +50,14 @@ class OllamaClient:
                 }
             except httpx.HTTPStatusError as exc:
                 body = exc.response.text.lower()
-                if exc.response.status_code in {400, 404, 500} and "tools" in payload and ("does not support tools" in body or "tools" in body):
+                # Drop `tools` if the model truly rejected it. Match specific
+                # phrases rather than any 'tools' substring (which always
+                # appears in the body when we sent tools=...).
+                tools_unsupported = any(
+                    phrase in body
+                    for phrase in ("does not support tools", "no tools", "tools not supported", "unknown field \"tools\"")
+                )
+                if exc.response.status_code in {400, 404, 500} and "tools" in payload and tools_unsupported:
                     payload.pop("tools", None)
                     fallback = True
                     continue
@@ -85,14 +98,61 @@ class OllamaClient:
 
 
 def parse_json_response(text: str) -> dict[str, Any] | None:
+    """Best-effort extraction of the first top-level JSON object from `text`.
+
+    Handles three common Gemma output shapes:
+      1. Pure JSON ('{"a":1}') — fast path.
+      2. JSON wrapped in code fences ('```json\\n{...}\\n```') — strip fences.
+      3. Prose + JSON + trailing junk — brace-balanced scan from the first '{'
+         picks the first complete object instead of the old over-greedy
+         text.find('{') ... text.rfind('}') span which would mis-parse when
+         the model emits multiple snippets.
+    """
+    if not text:
+        return None
+    candidate = text.strip()
+    # Strip ```json ... ``` fences if present.
+    if candidate.startswith("```"):
+        candidate = candidate[3:]  # drop opening fence
+        if candidate.lstrip().lower().startswith("json"):
+            candidate = candidate.lstrip()[4:]
+        end_fence = candidate.find("```")
+        if end_fence >= 0:
+            candidate = candidate[:end_fence]
+        candidate = candidate.strip()
     try:
-        return json.loads(text)
+        result = json.loads(candidate)
+        return result if isinstance(result, dict) else None
     except json.JSONDecodeError:
-        start = text.find("{")
-        end = text.rfind("}")
-        if start >= 0 and end > start:
-            try:
-                return json.loads(text[start : end + 1])
-            except json.JSONDecodeError:
-                return None
+        pass
+    # Brace-balanced scan from the first '{' for the first complete object.
+    start = candidate.find("{")
+    if start < 0:
+        return None
+    depth = 0
+    in_string = False
+    escape = False
+    for idx in range(start, len(candidate)):
+        ch = candidate[idx]
+        if escape:
+            escape = False
+            continue
+        if ch == "\\" and in_string:
+            escape = True
+            continue
+        if ch == '"':
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                try:
+                    result = json.loads(candidate[start : idx + 1])
+                    return result if isinstance(result, dict) else None
+                except json.JSONDecodeError:
+                    return None
     return None

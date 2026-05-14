@@ -382,8 +382,11 @@ app.whenReady().then(() => {
       width: Math.max(1, Math.round(rect.width * scaleFactor)),
       height: Math.max(1, Math.round(rect.height * scaleFactor)),
     };
-    physicalRect.width = Math.min(physicalRect.width, size.width - physicalRect.x);
-    physicalRect.height = Math.min(physicalRect.height, size.height - physicalRect.y);
+    // Defensive clamps: if the user dragged a tiny rect at the very edge of
+    // the screen, the post-clamp width/height could be <= 0 → nativeImage.crop
+    // throws and the user sees a bare "highlight crop failed" error.
+    physicalRect.width = Math.max(1, Math.min(physicalRect.width, size.width - physicalRect.x));
+    physicalRect.height = Math.max(1, Math.min(physicalRect.height, size.height - physicalRect.y));
     let cropped;
     try {
       cropped = fullImage.crop(physicalRect);
